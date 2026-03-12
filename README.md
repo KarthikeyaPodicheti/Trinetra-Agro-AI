@@ -337,11 +337,6 @@ docker run -p 8501:8501 trinetra-agro-ai
 - 🏗️ **Developer Guide**: `docs/technical/`
 - 🚀 **Deployment Guide**: `docs/deployment/`
 
-### Getting Help
-- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/KarthikeyaPodicheti/Trinetra-Agro-AI/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/KarthikeyaPodicheti/Trinetra-Agro-AI/discussions)
-- 📧 **Contact**: karthikeyapodicheti25@gmail.com
-
 ---
 
 ## 🏆 **Roadmap & Future Plans**
@@ -374,7 +369,6 @@ docker run -p 8501:8501 trinetra-agro-ai
 
 **Project Maintainer**: Kartikeya Podicheti  
 **Email**: karthikeyapodicheti25@gmail.com  
-**LinkedIn**: [Your LinkedIn Profile]  
 **GitHub**: [@KarthikeyaPodicheti](https://github.com/KarthikeyaPodicheti)
 
 ---
