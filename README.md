@@ -329,27 +329,6 @@ docker run -p 8501:8501 trinetra-agro-ai
 
 ---
 
-## 🤝 **Contributing**
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
-
-### Development Workflow
-1. **Fork** the repository
-2. **Create** feature branch (`git checkout -b feature/amazing-feature`)
-3. **Commit** changes (`git commit -m 'Add amazing feature'`)
-4. **Push** to branch (`git push origin feature/amazing-feature`)
-5. **Open** Pull Request
-
-### Areas for Contribution
-- 🧠 **AI Models**: Improve disease detection accuracy
-- 🌍 **Languages**: Add support for more Indian languages
-- 📊 **Data**: Contribute regional crop datasets
-- 🎨 **UI/UX**: Enhance user interface
-- 📱 **Mobile**: React Native mobile app
-- 🧪 **Testing**: Add test coverage
-
----
-
 ## 🆘 **Support & Documentation**
 
 ### Documentation
@@ -361,7 +340,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ### Getting Help
 - 🐛 **Bug Reports**: [GitHub Issues](https://github.com/KarthikeyaPodicheti/Trinetra-Agro-AI/issues)
 - 💬 **Discussions**: [GitHub Discussions](https://github.com/KarthikeyaPodicheti/Trinetra-Agro-AI/discussions)
-- 📧 **Contact**: your-email@example.com
+- 📧 **Contact**: karthikeyapodicheti25@gmail.com
 
 ---
 
@@ -381,12 +360,6 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ---
 
-## 📜 **License**
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
 ## 🙏 **Acknowledgments**
 
 - **PlantVillage Dataset** for disease detection training data
@@ -400,7 +373,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 **Contact Information**
 
 **Project Maintainer**: Kartikeya Podicheti  
-**Email**: your-email@example.com  
+**Email**: karthikeyapodicheti25@gmail.com  
 **LinkedIn**: [Your LinkedIn Profile]  
 **GitHub**: [@KarthikeyaPodicheti](https://github.com/KarthikeyaPodicheti)
 
