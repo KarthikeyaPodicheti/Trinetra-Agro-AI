@@ -281,6 +281,10 @@ def _auth_mode() -> str:
     return mode if mode in {"password", "otp"} else "password"
 
 
+def _otp_debug_panel_enabled() -> bool:
+    return _env_flag("OTP_DEBUG_PANEL", "false")
+
+
 def _hash_password(raw_password: str) -> str:
     return hashlib.sha256(raw_password.encode("utf-8")).hexdigest()
 
@@ -358,6 +362,19 @@ def _ensure_otp_auth() -> bool:
             st.rerun()
         else:
             st.error(out.get("error", "OTP verification failed"))
+
+    if _otp_debug_panel_enabled():
+        debug_otp = auth_state.get("debug_last_otp")
+        debug_phone = auth_state.get("debug_last_phone")
+        challenge = auth_state.get("challenge") or {}
+        expires_at = int(challenge.get("expires_at", 0))
+        remaining = max(0, expires_at - int(time.time())) if expires_at else 0
+        with st.expander("🧪 Dev OTP Panel", expanded=True):
+            st.warning("Dev-only panel. Disable OTP_DEBUG_PANEL in production.")
+            if debug_otp:
+                st.code(f"Phone: {debug_phone}\nOTP: {debug_otp}\nExpires in: {remaining}s")
+            else:
+                st.caption("No OTP issued yet in this session.")
 
     st.info("Set AUTH_MODE=otp and configure OTP_WEBHOOK_URL for production SMS delivery.")
     return False

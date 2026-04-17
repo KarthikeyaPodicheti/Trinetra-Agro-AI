@@ -124,6 +124,12 @@ class TrinetraBot:
     # Response generation
     # ------------------------------------------------------------------
     def _generate_response(self, intent: str, user_input: str) -> str:
+        if self._is_meta_ai_question(user_input):
+            return self._domain_guardrail_response()
+
+        if intent == 'general' and not self._is_agriculture_related(user_input):
+            return self._domain_guardrail_response()
+
         # Try LLM first
         if self.openrouter_client:
             try:
@@ -284,10 +290,32 @@ class TrinetraBot:
                 "Ask me about **crops, diseases, markets, irrigation, yield, risk, or profit** "
                 "and I'll provide intelligent guidance.")
 
+    def _domain_guardrail_response(self):
+        if self.language.startswith("Telugu"):
+            return ("నేను వ్యవసాయం మరియు పంటల విషయాలకే సహాయం చేస్తాను. 🌾\n\n"
+                    "దయచేసి పంటలు, వ్యాధులు, మార్కెట్ ధరలు, నీటిపారుదల, దిగుబడి లేదా లాభాలపై ప్రశ్న అడగండి.")
+        if self.language.startswith("Hindi"):
+            return ("मैं केवल खेती और कृषि से जुड़े सवालों में मदद करता हूं। 🌾\n\n"
+                    "कृपया फसल, रोग, मंडी भाव, सिंचाई, उपज या मुनाफे से जुड़ा सवाल पूछें।")
+        return ("I can only help with farming and agriculture-related questions. 🌾\n\n"
+                "Please ask about crops, plant diseases, market prices, irrigation, yield, risk, or profit.")
+
     # --- helpers ---
     _CROP_KEYWORDS = [
         'rice', 'wheat', 'cotton', 'tomato', 'potato', 'onion', 'maize',
         'corn', 'sugarcane', 'soybean', 'groundnut', 'mustard',
+    ]
+
+    _AGRI_KEYWORDS = [
+        'agri', 'agriculture', 'farming', 'farm', 'crop', 'soil', 'seed', 'sow', 'harvest',
+        'disease', 'pest', 'fungus', 'blight', 'wilt', 'irrigation', 'water', 'rain',
+        'fertilizer', 'manure', 'npk', 'market', 'mandi', 'price', 'yield', 'profit',
+        'livestock', 'dairy', 'tractor', 'drip', 'sprinkler', 'weather',
+    ]
+
+    _META_AI_KEYWORDS = [
+        'what model', 'which model', 'who made you', 'who created you', 'are you gpt',
+        'openai', 'llm', 'architecture', 'model are you', 'what ai are you',
     ]
 
     def _extract_crop(self, text):
@@ -296,6 +324,14 @@ class TrinetraBot:
             if c in t:
                 return c
         return None
+
+    def _is_agriculture_related(self, text: str) -> bool:
+        t = (text or '').lower()
+        return any(k in t for k in self._AGRI_KEYWORDS)
+
+    def _is_meta_ai_question(self, text: str) -> bool:
+        t = (text or '').lower()
+        return any(k in t for k in self._META_AI_KEYWORDS)
 
     def _personalise(self, resp, intent):
         if 'name' in self.farmer_profile:

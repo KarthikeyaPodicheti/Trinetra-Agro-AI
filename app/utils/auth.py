@@ -36,6 +36,10 @@ def _otp_message(otp: str) -> str:
     return f"{sender} login code: {otp}. Valid for 5 minutes. Do not share this code."
 
 
+def _debug_panel_enabled() -> bool:
+    return os.getenv("OTP_DEBUG_PANEL", "false").strip().lower() in {"1", "true", "yes", "on"}
+
+
 def _send_via_webhook(phone: str, otp: str) -> Tuple[bool, str]:
     url = os.getenv("OTP_WEBHOOK_URL", "").strip()
     if not url:
@@ -99,6 +103,9 @@ def issue_otp(phone: str, auth_state: Dict) -> Dict:
         "attempts": 0,
         "channel": channel,
     }
+    if _debug_panel_enabled():
+        auth_state["debug_last_otp"] = otp
+        auth_state["debug_last_phone"] = phone_norm
 
     result = {
         "success": True,
@@ -147,3 +154,5 @@ def logout(auth_state: Dict) -> None:
     auth_state["authenticated"] = False
     auth_state.pop("phone", None)
     auth_state.pop("challenge", None)
+    auth_state.pop("debug_last_otp", None)
+    auth_state.pop("debug_last_phone", None)
