@@ -52,6 +52,8 @@ data/raw/*.csv
 data/processed/*.csv
 data/raw/*.json
 data/processed/*.json
+trinetra.db
+data/*.db
 
 # Model files (large trained models)
 models/trained_models/*.pkl
