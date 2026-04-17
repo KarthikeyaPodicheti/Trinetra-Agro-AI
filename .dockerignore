@@ -1,0 +1,14 @@
+.git
+.gitignore
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+logs/
+data/*.db
+data/trinetra.db
+build/
+dist/

@@ -8,6 +8,14 @@ import os
 import sys
 from pathlib import Path
 
+try:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 # Add the app directory to Python path
 app_path = Path(__file__).parent / "app"
 sys.path.insert(0, str(app_path))

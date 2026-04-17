@@ -6,6 +6,10 @@ import os
 from pathlib import Path
 from typing import Dict, Any
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 class Config:
     """Base configuration class"""
     
@@ -31,7 +35,8 @@ class Config:
     WEATHER_API_KEY = os.getenv('WEATHER_API_KEY', '')
     
     # Database settings
-    DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///trinetra.db')
+    DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///data/trinetra.db')
+    MARKET_DATA_API_KEY = os.getenv('MARKET_DATA_API_KEY', '')
     
     # Language settings
     SUPPORTED_LANGUAGES = ['English', 'Telugu (తెలుగు)', 'Hindi (हिंदी)']

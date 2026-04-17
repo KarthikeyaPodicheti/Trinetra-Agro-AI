@@ -7,6 +7,8 @@ import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
 
+from utils.data_sources import fetch_mandi_prices
+
 
 class MarketPredictor:
     """
@@ -70,6 +72,24 @@ class MarketPredictor:
 
         df = self.historical_data[crop]
         current_price = float(df['price'].iloc[-1])
+        source_info = {
+            'current_price_source': 'synthetic-history',
+            'current_price_updated_at': datetime.now().isoformat(),
+            'market_records_used': 0,
+        }
+
+        market_live = fetch_mandi_prices(crop=crop, location=location)
+        if market_live.get('success'):
+            current_price = float(market_live['current_price'])
+            source_info = {
+                'current_price_source': market_live.get('source', 'data.gov.in'),
+                'current_price_updated_at': market_live.get('updated_at'),
+                'market_records_used': int(market_live.get('records_used', 0)),
+                'markets': market_live.get('markets', []),
+                'states': market_live.get('states', []),
+            }
+        else:
+            source_info['source_error'] = market_live.get('error', 'market API unavailable')
 
         # Three forecast methods
         ma_pred = self._moving_avg_predict(df, days)
@@ -102,6 +122,7 @@ class MarketPredictor:
             'confidence': conf,
             'volatility': self.BASE_PRICES[crop]['volatility'],
             'market_tips': self._tips(crop, trend),
+            'data_source': source_info,
         }
 
     # --- forecasters ---

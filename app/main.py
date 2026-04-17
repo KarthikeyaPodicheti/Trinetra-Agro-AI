@@ -21,6 +21,7 @@ from chatbot.core_bot import TrinetraBot
 from utils.config import load_config
 from utils.helpers import setup_logging
 from utils.translator import translate as _t
+from utils.auth import issue_otp, verify_otp, logout as auth_logout
 
 # AI modules
 from ai_modules.disease_detection import DiseaseDetector
@@ -262,6 +263,11 @@ def _auth_required() -> bool:
     return _env_flag("REQUIRE_LOGIN", "false")
 
 
+def _auth_mode() -> str:
+    mode = os.getenv("AUTH_MODE", "password").strip().lower()
+    return mode if mode in {"password", "otp"} else "password"
+
+
 def _hash_password(raw_password: str) -> str:
     return hashlib.sha256(raw_password.encode("utf-8")).hexdigest()
 
@@ -282,6 +288,9 @@ def _ensure_auth() -> bool:
     if not _auth_required():
         return True
 
+    if _auth_mode() == "otp":
+        return _ensure_otp_auth()
+
     if st.session_state.get("authenticated", False):
         return True
 
@@ -300,6 +309,44 @@ def _ensure_auth() -> bool:
             st.error("Invalid username or password")
 
     st.info("Set REQUIRE_LOGIN=true and provide AUTH_USERNAME + AUTH_PASSWORD_HASH in env for production.")
+    return False
+
+
+def _ensure_otp_auth() -> bool:
+    auth_state = st.session_state.setdefault("auth", {})
+    if auth_state.get("authenticated", False):
+        st.session_state.authenticated = True
+        return True
+
+    st.warning("🔒 OTP login required for this deployment.")
+    phone = st.text_input("Phone Number", key="otp_phone", placeholder="e.g. +919876543210")
+    c1, c2 = st.columns(2)
+    send_clicked = c1.button("Send OTP", key="send_otp_btn")
+    otp = c2.text_input("Enter OTP", key="otp_code", max_chars=6)
+    verify_clicked = st.button("Verify OTP", key="verify_otp_btn")
+
+    if send_clicked:
+        if not phone.strip():
+            st.error("Enter phone number first.")
+        else:
+            out = issue_otp(phone, auth_state)
+            if out.get("success"):
+                st.success(f"OTP sent to {out['phone']} (valid {out['expires_in']}s)")
+                if out.get("channel") == "dev" and out.get("dev_otp"):
+                    st.info(f"DEV OTP: {out['dev_otp']}")
+            else:
+                st.error(out.get("error", "Failed to send OTP"))
+
+    if verify_clicked:
+        out = verify_otp(phone, otp, auth_state)
+        if out.get("success"):
+            st.session_state.authenticated = True
+            st.success("OTP verification successful")
+            st.rerun()
+        else:
+            st.error(out.get("error", "OTP verification failed"))
+
+    st.info("Set AUTH_MODE=otp and configure OTP_WEBHOOK_URL for production SMS delivery.")
     return False
 
 
@@ -341,6 +388,8 @@ def main():
             st.success("🔐 Logged in")
             if st.button("Logout", key="logout_btn"):
                 st.session_state.authenticated = False
+                if _auth_mode() == "otp":
+                    auth_logout(st.session_state.setdefault("auth", {}))
                 st.rerun()
             st.markdown("---")
 
@@ -534,6 +583,17 @@ def page_market():
             delta = avg_pred - res["current_price"]
             mc2.metric(_t(f"Avg Predicted ({days}d)"), f"₹{avg_pred:,.0f}", f"{delta:+,.0f}")
             mc3.metric(_t("Trend"), _t(res["trend"].title()))
+
+            ds = res.get("data_source", {})
+            src_name = ds.get("current_price_source", "unknown")
+            src_time = ds.get("current_price_updated_at", "")
+            rec_count = ds.get("market_records_used", 0)
+            if src_name == "data.gov.in":
+                st.caption(_t(f"Data source: {src_name} | records: {rec_count} | updated: {src_time}"))
+            else:
+                st.caption(_t(f"Data source: fallback model | updated: {src_time}"))
+                if ds.get("source_error"):
+                    st.info(_t(f"Live mandi feed unavailable: {ds['source_error']}"))
 
             # Chart
             fig = go.Figure()

@@ -170,14 +170,30 @@ def process_weather_data(location: str) -> Dict[str, Any]:
     Returns:
         Processed weather information
     """
-    # Simulated weather data (replace with actual API call)
-    weather_data = {
-        'temperature': np.random.randint(25, 35),
-        'humidity': np.random.randint(60, 85),
-        'rainfall_forecast': np.random.choice(['No rain', 'Light rain', 'Moderate rain', 'Heavy rain']),
-        'wind_speed': np.random.randint(5, 15),
-        'uv_index': np.random.randint(6, 10)
-    }
+    from .data_sources import fetch_weather
+
+    ext = fetch_weather(location)
+    if ext.get('success'):
+        weather_data = {
+            'temperature': ext.get('temperature'),
+            'humidity': ext.get('humidity'),
+            'rainfall_forecast': ext.get('rainfall_forecast', 'No rain'),
+            'wind_speed': ext.get('wind_speed'),
+            'uv_index': ext.get('uv_index'),
+            'source': ext.get('source', 'openweathermap'),
+            'updated_at': ext.get('updated_at')
+        }
+    else:
+        weather_data = {
+            'temperature': np.random.randint(25, 35),
+            'humidity': np.random.randint(60, 85),
+            'rainfall_forecast': np.random.choice(['No rain', 'Light rain', 'Moderate rain', 'Heavy rain']),
+            'wind_speed': np.random.randint(5, 15),
+            'uv_index': np.random.randint(6, 10),
+            'source': 'fallback',
+            'updated_at': ext.get('updated_at'),
+            'source_error': ext.get('error', '')
+        }
     
     # Agricultural insights
     insights = []

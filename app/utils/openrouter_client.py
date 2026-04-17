@@ -28,7 +28,7 @@ class OpenRouterClient:
             api_key: OpenRouter API key
             model: Model to use (default: openai/gpt-4-turbo-preview)
         """
-        self.api_key = api_key or os.getenv('OPENROUTER_API_KEY')
+        self.api_key = self._normalize_api_key(api_key or os.getenv('OPENROUTER_API_KEY'))
         self.model = model or os.getenv('OPENROUTER_MODEL', 'openai/gpt-4-turbo-preview')
         self.base_url = "https://openrouter.ai/api/v1/chat/completions"
         
@@ -37,14 +37,33 @@ class OpenRouterClient:
             self.api_key = None
         
         self.headers = {
-            "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
             "HTTP-Referer": "https://github.com/KarthikeyaPodicheti/Trinetra-Agro-AI",
             "X-Title": "Trinetra Agro AI"
         }
+        if self.api_key:
+            self.headers["Authorization"] = f"Bearer {self.api_key}"
         
         # Agricultural system prompt
         self.system_prompt = self._get_agricultural_system_prompt()
+
+    @staticmethod
+    def _normalize_api_key(api_key: Optional[str]) -> Optional[str]:
+        if not api_key:
+            return None
+        key = api_key.strip()
+        if not key:
+            return None
+        lowered = key.lower()
+        placeholder_markers = [
+            "your_openrouter_api_key_here",
+            "your-actual-api-key-here",
+            "replace_with",
+            "changeme",
+        ]
+        if any(marker in lowered for marker in placeholder_markers):
+            return None
+        return key
     
     def _get_agricultural_system_prompt(self) -> str:
         """

@@ -11,14 +11,27 @@
 - `OPENROUTER_API_KEY` (optional, enables advanced LLM chat)
 - `OPENROUTER_MODEL` (optional)
 - `WEATHER_API_KEY` (optional)
+- `MARKET_DATA_API_KEY` (recommended for live mandi prices)
 - `PORT` (provided by most platforms)
 
 Recommended security variables for public deployments:
 - `REQUIRE_LOGIN=true`
+- `AUTH_MODE=otp` (preferred for farmer-facing deployments)
 - `AUTH_USERNAME=<admin username>`
 - `AUTH_PASSWORD_HASH=<sha256 password hash>`
 - `CHAT_MIN_INTERVAL_SEC=2` (basic per-session throttling)
 - `ENABLE_OPERATIONS_DASHBOARD=true` (admin metrics/events page)
+
+OTP mode variables:
+- `OTP_WEBHOOK_URL` (SMS gateway/webhook endpoint)
+- `OTP_WEBHOOK_BEARER_TOKEN` (optional bearer token)
+- `OTP_SENDER_NAME=Trinetra Agro AI`
+- `OTP_EXPIRY_SEC=300`
+- `OTP_RESEND_INTERVAL_SEC=45`
+- `OTP_MAX_ATTEMPTS=5`
+- `OTP_ALLOW_DEV_FALLBACK=false` (must remain false in production)
+
+For provider wiring details, see `OTP_WEBHOOK_SETUP.md`.
 
 Example PostgreSQL URL:
 
@@ -33,6 +46,48 @@ python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 streamlit run app/main.py --server.headless=true --server.address=0.0.0.0 --server.port=8501
+```
+
+Windows one-command runner:
+
+```powershell
+./start_production.ps1 -CheckOnly
+./start_production.ps1 -StartGateway
+```
+
+Or directly:
+
+```bash
+python production_runner.py --check-only
+python production_runner.py --start-gateway
+```
+
+Runtime logs:
+- `logs/app-production.log`
+- `logs/otp-gateway.log`
+
+Runner observability:
+- Metrics endpoint: `http://127.0.0.1:9090/metrics`
+- Health endpoint: `http://127.0.0.1:9090/healthz`
+- Log rotation and retention controlled by:
+  - `RUNNER_LOG_MAX_BYTES`
+  - `RUNNER_LOG_BACKUP_COUNT`
+  - `RUNNER_LOG_RETENTION_DAYS`
+
+## 3.1) Release readiness gate (recommended before go-live)
+
+Run one command to validate env, DB, compile checks, production check-only,
+runner health/metrics, and OTP webhook (when OTP auth is enabled):
+
+```bash
+python release_readiness.py
+```
+
+Optional flags:
+
+```bash
+python release_readiness.py --skip-runner
+python release_readiness.py --skip-otp-webhook
 ```
 
 ## 4) Docker deployment
