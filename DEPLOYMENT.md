@@ -39,6 +39,29 @@ Example PostgreSQL URL:
 postgresql+psycopg2://USER:PASSWORD@HOST:5432/DB_NAME
 ```
 
+## 2.1) Supabase integration (Step 7 recommended)
+
+Supabase works well for this repo because it provides managed PostgreSQL and backups.
+
+Use the pooled connection string from Supabase (Connection Pooler) and include SSL:
+
+```text
+postgresql+psycopg2://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres?sslmode=require
+```
+
+Setup checklist:
+- Create a Supabase project.
+- Go to `Project Settings -> Database -> Connection string -> URI`.
+- Prefer the **pooler** endpoint for production traffic.
+- Set `DATABASE_URL` in your deployment secrets (not in git).
+- Run `python healthcheck.py --skip-http` to verify DB connectivity.
+- Run `python release_readiness.py --skip-runner --skip-otp-webhook` before go-live.
+
+Notes:
+- Current app auto-creates SQLAlchemy tables on startup.
+- Keep `sslmode=require` in Supabase connection URL.
+- Avoid exposing DB credentials in logs or screenshots.
+
 ## 3) Local production-style run
 
 ```bash

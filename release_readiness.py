@@ -43,6 +43,20 @@ def check_required_env() -> tuple[bool, str]:
     return True, "required env vars are set"
 
 
+def check_supabase_db_url() -> tuple[bool, str]:
+    db_url = os.getenv("DATABASE_URL", "").strip().lower()
+    if "supabase" not in db_url:
+        return True, "not a supabase url"
+
+    if not (db_url.startswith("postgresql://") or db_url.startswith("postgresql+psycopg2://")):
+        return False, "supabase DATABASE_URL must start with postgresql:// or postgresql+psycopg2://"
+
+    if "sslmode=require" not in db_url:
+        return False, "supabase DATABASE_URL should include sslmode=require"
+
+    return True, "supabase DATABASE_URL format looks valid"
+
+
 def check_db() -> tuple[bool, str]:
     db_url = os.getenv("DATABASE_URL", "")
     try:
@@ -144,6 +158,7 @@ def main() -> int:
     checks = []
 
     checks.append(("env",) + check_required_env())
+    checks.append(("supabase-db-url",) + check_supabase_db_url())
     checks.append(("database",) + check_db())
     checks.append(("compileall",) + run_compileall())
     checks.append(("production-check",) + run_production_check_only())

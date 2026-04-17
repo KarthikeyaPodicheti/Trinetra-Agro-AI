@@ -10,6 +10,20 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 
 
+def validate_supabase_db_url(database_url: str) -> tuple[bool, str]:
+    url = (database_url or "").strip().lower()
+    if "supabase" not in url:
+        return True, "not a supabase url"
+
+    if not (url.startswith("postgresql://") or url.startswith("postgresql+psycopg2://")):
+        return False, "supabase DATABASE_URL must start with postgresql:// or postgresql+psycopg2://"
+
+    if "sslmode=require" not in url:
+        return False, "supabase DATABASE_URL should include sslmode=require"
+
+    return True, "supabase DATABASE_URL format looks valid"
+
+
 def check_db(database_url: str) -> tuple[bool, str]:
     try:
         engine = create_engine(database_url, pool_pre_ping=True)
@@ -63,6 +77,8 @@ def main() -> int:
     checks: list[tuple[str, bool, str]] = []
 
     if not args.skip_db:
+        ok_fmt, msg_fmt = validate_supabase_db_url(args.database_url)
+        checks.append(("DB_URL", ok_fmt, msg_fmt))
         ok, msg = check_db(args.database_url)
         checks.append(("DB", ok, msg))
 
