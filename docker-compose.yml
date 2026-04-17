@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+    ports:
+      - "8501:8501"
+    environment:
+      PORT: 8501
+      DATABASE_URL: postgresql+psycopg2://trinetra:trinetra@db:5432/trinetra
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-openai/gpt-4-turbo-preview}
+      WEATHER_API_KEY: ${WEATHER_API_KEY:-}
+      REQUIRE_LOGIN: ${REQUIRE_LOGIN:-false}
+      AUTH_USERNAME: ${AUTH_USERNAME:-admin}
+      AUTH_PASSWORD_HASH: ${AUTH_PASSWORD_HASH:-}
+      CHAT_MIN_INTERVAL_SEC: ${CHAT_MIN_INTERVAL_SEC:-2}
+      ENABLE_OPERATIONS_DASHBOARD: ${ENABLE_OPERATIONS_DASHBOARD:-false}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: trinetra
+      POSTGRES_USER: trinetra
+      POSTGRES_PASSWORD: trinetra
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trinetra -d trinetra"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

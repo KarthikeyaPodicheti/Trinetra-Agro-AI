@@ -6,6 +6,9 @@ Vision Beyond the Fields 🔱
 import streamlit as st
 import sys
 import os
+import time
+import hmac
+import hashlib
 import tempfile
 from pathlib import Path
 
@@ -27,7 +30,8 @@ from ai_modules import risk_assessment, yield_prediction, irrigation_ai, profit_
 
 # Database
 from database import (save_farmer, save_conversation, save_disease_detection,
-                       save_market_query, save_crop_recommendation)
+                       save_market_query, save_crop_recommendation,
+                       save_event, get_event_counts, get_recent_events)
 
 # ---- page config ----
 st.set_page_config(
@@ -249,6 +253,73 @@ def _profile() -> dict:
     }
 
 
+def _env_flag(name: str, default: str = "false") -> bool:
+    value = os.getenv(name, default).strip().lower()
+    return value in {"1", "true", "yes", "on"}
+
+
+def _auth_required() -> bool:
+    return _env_flag("REQUIRE_LOGIN", "false")
+
+
+def _hash_password(raw_password: str) -> str:
+    return hashlib.sha256(raw_password.encode("utf-8")).hexdigest()
+
+
+def _verify_login(username: str, password: str) -> bool:
+    expected_user = os.getenv("AUTH_USERNAME", "admin").strip()
+    expected_hash = os.getenv("AUTH_PASSWORD_HASH", "").strip()
+
+    if not expected_hash:
+        # Safe default for local/dev only; production should always set AUTH_PASSWORD_HASH
+        expected_hash = _hash_password("admin123")
+
+    provided_hash = _hash_password(password)
+    return hmac.compare_digest(username.strip(), expected_user) and hmac.compare_digest(provided_hash, expected_hash)
+
+
+def _ensure_auth() -> bool:
+    if not _auth_required():
+        return True
+
+    if st.session_state.get("authenticated", False):
+        return True
+
+    st.warning("🔒 Login required to access this deployment.")
+    with st.form("login_form", clear_on_submit=False):
+        username = st.text_input("Username", key="login_user")
+        password = st.text_input("Password", type="password", key="login_pass")
+        submit = st.form_submit_button("Sign in")
+
+    if submit:
+        if _verify_login(username, password):
+            st.session_state.authenticated = True
+            st.success("Login successful")
+            st.rerun()
+        else:
+            st.error("Invalid username or password")
+
+    st.info("Set REQUIRE_LOGIN=true and provide AUTH_USERNAME + AUTH_PASSWORD_HASH in env for production.")
+    return False
+
+
+def _allow_chat_request() -> bool:
+    min_interval = float(os.getenv("CHAT_MIN_INTERVAL_SEC", "2"))
+    now = time.time()
+    last = float(st.session_state.get("last_chat_ts", 0.0))
+    if now - last < min_interval:
+        return False
+    st.session_state.last_chat_ts = now
+    return True
+
+
+def _record_event(event_type: str, status: str = "ok", details: str = "") -> None:
+    try:
+        save_event(event_type=event_type, status=status, details=details)
+    except Exception:
+        pass
+
+
 # ===========================================================================
 #  MAIN
 # ===========================================================================
@@ -266,8 +337,18 @@ def main():
 
     # ---- sidebar ----
     with st.sidebar:
+        if _auth_required() and st.session_state.get("authenticated", False):
+            st.success("🔐 Logged in")
+            if st.button("Logout", key="logout_btn"):
+                st.session_state.authenticated = False
+                st.rerun()
+            st.markdown("---")
+
+        if not _ensure_auth():
+            st.stop()
+
         st.markdown("### 🌿 Navigation")
-        feature = st.selectbox("Choose AI Feature:", key="feature_select", options=[
+        features = [
             "💬 Smart Chat",
             "🔬 Disease Detection",
             "📈 Market Prediction",
@@ -277,7 +358,11 @@ def main():
             "🗣️ Voice AI",
             "💧 Irrigation AI",
             "💰 Profit Predictor",
-        ])
+        ]
+        if _env_flag("ENABLE_OPERATIONS_DASHBOARD", "false"):
+            features.append("🛠️ Operations Dashboard")
+
+        feature = st.selectbox("Choose AI Feature:", key="feature_select", options=features)
         st.markdown("---")
 
         language = st.selectbox("🌍 Language / భాష:", ["English", "Telugu (తెలుగు)", "Hindi (हिंदी)"], key="language")
@@ -323,6 +408,8 @@ def main():
         page_irrigation()
     elif feature == "💰 Profit Predictor":
         page_profit()
+    elif feature == "🛠️ Operations Dashboard":
+        page_operations()
 
 
 # ===========================================================================
@@ -342,6 +429,17 @@ def page_chat():
             st.markdown(msg["content"])
 
     if prompt := st.chat_input(_t("Ask your farming question…")):
+        prompt = prompt.strip()
+        if not prompt:
+            st.warning(_t("Please enter a question."))
+            return
+        if len(prompt) > 1000:
+            st.warning(_t("Please keep the message under 1000 characters."))
+            return
+        if not _allow_chat_request():
+            st.warning(_t("Please wait a moment before sending another message."))
+            return
+
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
@@ -354,6 +452,7 @@ def page_chat():
 
         save_conversation(0, "user", prompt)
         save_conversation(0, "bot", reply)
+        _record_event("chat_message", "ok")
 
 
 # ===========================================================================
@@ -399,8 +498,10 @@ def page_disease():
                         st.json(result.get("analysis", {}))
 
                     save_disease_detection(0, crop_type, disease, conf, result["severity"])
+                    _record_event("disease_detection", "ok", disease)
                 else:
                     st.error(_t(result.get("error", "Analysis failed.")))
+                    _record_event("disease_detection", "error", result.get("error", "analysis failed"))
 
 
 # ===========================================================================
@@ -463,8 +564,10 @@ def page_market():
                 st.markdown(f"• {_t(tip)}")
 
             save_market_query(0, crop, res["current_price"], res["trend"], rec["action"])
+            _record_event("market_prediction", "ok", rec.get("action", ""))
         else:
             st.error(res.get("error"))
+            _record_event("market_prediction", "error", res.get("error", "prediction failed"))
 
     # Overview
     with st.expander("📋 Market Overview — All Crops"):
@@ -538,8 +641,10 @@ def page_advisor():
 
             crop_names = ", ".join(c.get("name", "") for c in recs.get("primary_recommendations", [])[:3])
             save_crop_recommendation(0, crop_names, risk.get("risk_level", ""))
+            _record_event("farming_advisor", "ok", crop_names)
         else:
             st.error(_t(recs.get("error", "Could not generate recommendations")))
+            _record_event("farming_advisor", "error", recs.get("error", "recommendation failed"))
 
 
 # ===========================================================================
@@ -580,6 +685,7 @@ def page_risk():
             st.markdown(_t("### 🛡️ Mitigations"))
             for m in res["mitigations"]:
                 st.markdown(f"• {_t(m)}")
+        _record_event("risk_assessment", "ok", f"{crop}:{res['risk_level']}")
 
 
 # ===========================================================================
@@ -610,8 +716,10 @@ def page_yield():
                         f"**Season factor:** {m['season']:.2f} | "
                         f"**Irrigation factor:** {m['irrigation']:.2f}"))
             st.info(_t(f"Season: {res['current_season']} — {res['notes'][0]}"))
+            _record_event("yield_prediction", "ok", crop)
         else:
             st.error(_t(res.get("error")))
+            _record_event("yield_prediction", "error", res.get("error", "yield failed"))
 
 
 # ===========================================================================
@@ -649,8 +757,10 @@ def page_irrigation():
             st.markdown(_t("### 💡 Water-Saving Tips"))
             for t in res["tips"]:
                 st.markdown(f"• {_t(t)}")
+            _record_event("irrigation_plan", "ok", crop)
         else:
             st.error(_t(res.get("error")))
+            _record_event("irrigation_plan", "error", res.get("error", "irrigation failed"))
 
 
 # ===========================================================================
@@ -710,8 +820,10 @@ def page_profit():
                 st.success(_t(f"✅ {res['recommendation']}"))
             else:
                 st.error(_t(f"⚠️ {res['recommendation']}"))
+            _record_event("profit_prediction", "ok", crop)
         else:
             st.error(_t(res.get("error")))
+            _record_event("profit_prediction", "error", res.get("error", "profit failed"))
 
 
 # ===========================================================================
@@ -744,8 +856,70 @@ def page_voice():
             tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".mp3")
             tts.save(tmp.name)
             st.audio(tmp.name, format="audio/mp3")
+            _record_event("voice_ai", "ok", "tts")
         else:
             st.warning(_t("gTTS not installed — install with `pip install gTTS` for audio playback."))
+            _record_event("voice_ai", "error", "gtts_missing")
+
+
+def page_operations():
+    st.markdown('<p class="page-section-title">🛠️ Operations Dashboard</p>', unsafe_allow_html=True)
+
+    if not _auth_required():
+        st.warning("Enable login first (`REQUIRE_LOGIN=true`) before using operations dashboard in production.")
+        return
+
+    if not st.session_state.get("authenticated", False):
+        st.error("Unauthorized")
+        return
+
+    counts = get_event_counts(days=7)
+    total_ok = sum(v.get("ok", 0) for v in counts.values())
+    total_err = sum(v.get("error", 0) for v in counts.values())
+    total_other = sum(v.get("other", 0) for v in counts.values())
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Events (7d)", f"{total_ok + total_err + total_other}")
+    c2.metric("Successful", f"{total_ok}")
+    c3.metric("Errors", f"{total_err}")
+
+    import pandas as pd
+
+    rows = []
+    for event_type, vals in sorted(counts.items()):
+        rows.append(
+            {
+                "event_type": event_type,
+                "ok": vals.get("ok", 0),
+                "error": vals.get("error", 0),
+                "other": vals.get("other", 0),
+            }
+        )
+
+    if rows:
+        st.markdown("### Event Summary (last 7 days)")
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    else:
+        st.info("No events recorded yet.")
+
+    st.markdown("### Recent Events")
+    recent = get_recent_events(limit=100)
+    if not recent:
+        st.info("No recent events.")
+        return
+
+    recent_rows = []
+    for row in recent:
+        recent_rows.append(
+            {
+                "id": row.id,
+                "time_utc": row.created_at.isoformat() if row.created_at else "",
+                "event_type": row.event_type,
+                "status": row.status,
+                "details": row.details,
+            }
+        )
+    st.dataframe(pd.DataFrame(recent_rows), use_container_width=True, hide_index=True)
 
 
 # ===========================================================================
