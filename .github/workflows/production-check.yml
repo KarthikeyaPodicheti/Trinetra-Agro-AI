@@ -26,9 +26,21 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Run pytest suite
+        env:
+          DATABASE_URL: sqlite:///data/trinetra.db
+        run: |
+          python -m pytest
+
       - name: Compile sources
         run: |
           python -m compileall app quick_start.py healthcheck.py otp_gateway.py production_runner.py
+
+      - name: Run quick smoke demo
+        env:
+          DATABASE_URL: sqlite:///data/trinetra.db
+        run: |
+          python quick_start.py
 
       - name: Run production check-only
         env:

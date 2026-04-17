@@ -10,7 +10,11 @@ import time
 import hmac
 import hashlib
 import tempfile
+import io
 from pathlib import Path
+from typing import Iterable
+
+from PIL import Image, UnidentifiedImageError
 
 # ---- path setup ----
 app_dir = Path(__file__).parent
@@ -41,6 +45,15 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+MIN_LAND_ACRES = 0.1
+MAX_LAND_ACRES = 500.0
+MIN_BUDGET_INR = 1000
+MAX_BUDGET_INR = 10_000_000
+MAX_IMAGE_MB = int(os.getenv("MAX_IMAGE_MB", "5"))
+MIN_IMAGE_DIM = 64
+MAX_IMAGE_DIM = 4096
+SAFETY_CONFIDENCE_THRESHOLD = float(os.getenv("SAFETY_CONFIDENCE_THRESHOLD", "0.70"))
 
 # ---- CSS ----
 st.markdown("""
@@ -367,6 +380,87 @@ def _record_event(event_type: str, status: str = "ok", details: str = "") -> Non
         pass
 
 
+def _validate_land_budget(land_size: float, budget: float) -> bool:
+    valid = True
+    if land_size < MIN_LAND_ACRES or land_size > MAX_LAND_ACRES:
+        st.error(_t(f"Land size must be between {MIN_LAND_ACRES} and {MAX_LAND_ACRES} acres."))
+        valid = False
+    if budget < MIN_BUDGET_INR or budget > MAX_BUDGET_INR:
+        st.error(_t(f"Budget must be between ₹{MIN_BUDGET_INR:,} and ₹{MAX_BUDGET_INR:,}."))
+        valid = False
+    return valid
+
+
+def _validate_crop_choice(crop: str, allowed: Iterable[str], field_name: str) -> bool:
+    allowed_set = {str(x).strip().lower() for x in allowed}
+    selected = str(crop).strip().lower()
+    if selected in allowed_set:
+        return True
+    st.error(_t(f"Invalid {field_name} selected. Please choose from the listed options."))
+    return False
+
+
+def _validate_uploaded_image(uploaded) -> bool:
+    if uploaded is None:
+        return False
+
+    allowed_ext = {"jpg", "jpeg", "png"}
+    suffix = uploaded.name.rsplit(".", 1)[-1].lower() if "." in uploaded.name else ""
+    if suffix not in allowed_ext:
+        st.error(_t("Invalid file type. Please upload JPG, JPEG, or PNG image."))
+        return False
+
+    raw = uploaded.getvalue()
+    size_limit = MAX_IMAGE_MB * 1024 * 1024
+    if len(raw) > size_limit:
+        st.error(_t(f"Image is too large. Maximum allowed size is {MAX_IMAGE_MB} MB."))
+        return False
+
+    try:
+        img = Image.open(io.BytesIO(raw))
+        img.verify()
+        img = Image.open(io.BytesIO(raw))
+        width, height = img.size
+    except (UnidentifiedImageError, OSError, ValueError):
+        st.error(_t("Uploaded file is not a valid image. Please upload a clear crop image."))
+        return False
+
+    if width < MIN_IMAGE_DIM or height < MIN_IMAGE_DIM:
+        st.error(_t(f"Image resolution is too low. Minimum size is {MIN_IMAGE_DIM}x{MIN_IMAGE_DIM}."))
+        return False
+    if width > MAX_IMAGE_DIM or height > MAX_IMAGE_DIM:
+        st.error(_t(f"Image resolution is too high. Maximum size is {MAX_IMAGE_DIM}x{MAX_IMAGE_DIM}."))
+        return False
+    return True
+
+
+def _confidence_score(value) -> float:
+    if isinstance(value, (int, float)):
+        v = float(value)
+        if v > 1:
+            v = v / 100.0
+        return max(0.0, min(1.0, v))
+
+    text = str(value or "").strip().lower()
+    mapping = {
+        "high": 0.85,
+        "medium": 0.68,
+        "low": 0.50,
+    }
+    return mapping.get(text, 0.5)
+
+
+def _show_prediction_safety(module_name: str, score: float) -> bool:
+    if score >= SAFETY_CONFIDENCE_THRESHOLD:
+        return True
+
+    st.warning(_t(
+        f"⚠️ {module_name}: Low confidence prediction ({score*100:.0f}%). "
+        "Please verify with local mandi data, field observation, or a Krishi Vigyan Kendra/agri officer before acting."
+    ))
+    return False
+
+
 # ===========================================================================
 #  MAIN
 # ===========================================================================
@@ -418,9 +512,13 @@ def main():
         st.markdown("---")
 
         st.markdown("### 👨‍🌾 Your Farm")
-        st.number_input("Land Size (acres)", min_value=0.1, value=5.0, key="land_size")
+        st.number_input("Land Size (acres)", min_value=MIN_LAND_ACRES, max_value=MAX_LAND_ACRES, value=5.0, key="land_size")
         st.selectbox("Soil Type", ["Black Cotton", "Red Soil", "Alluvial", "Sandy", "Clay", "Loamy"], key="soil_type")
-        st.number_input("Budget (₹)", min_value=1000, value=50000, step=5000, key="budget")
+        st.number_input("Budget (₹)", min_value=MIN_BUDGET_INR, max_value=MAX_BUDGET_INR, value=50000, step=5000, key="budget")
+
+        if not _validate_land_budget(st.session_state.get("land_size", 5.0), st.session_state.get("budget", 50000)):
+            st.warning(_t("Please correct farm profile fields to continue."))
+            st.stop()
 
         st.markdown("---")
         # Inline API status in sidebar
@@ -516,6 +614,13 @@ def page_disease():
     uploaded = st.file_uploader(_t("Upload leaf / crop image"), type=["jpg", "jpeg", "png"])
 
     if uploaded is not None:
+        if not _validate_crop_choice(crop_type, DiseaseDetector.DISEASE_CLASSES.keys(), _t("crop type")):
+            _record_event("disease_detection", "error", "invalid_crop")
+            return
+        if not _validate_uploaded_image(uploaded):
+            _record_event("disease_detection", "error", "invalid_image")
+            return
+
         col1, col2 = st.columns(2)
         with col1:
             st.image(uploaded, caption="Uploaded Image", use_container_width=True)
@@ -528,6 +633,7 @@ def page_disease():
                 if result.get("success"):
                     disease = result["disease"]
                     conf = result["confidence"]
+                    _show_prediction_safety("Disease detection", _confidence_score(conf))
                     if disease == "Healthy":
                         st.success(_t(f"✅ **{disease}** — Confidence: {conf*100:.1f}%"))
                     else:
@@ -570,11 +676,16 @@ def page_market():
         location = st.selectbox("Nearest Market:", ["Hyderabad", "Mumbai", "Delhi", "Chennai", "Bangalore"], key="market_location")
 
     if st.button(_t("📊 Predict Prices")):
+        if not _validate_crop_choice(crop, crops, _t("crop")):
+            _record_event("market_prediction", "error", "invalid_crop")
+            return
         with st.spinner(_t("Analysing market trends…")):
             res = _market().predict_prices(crop, days, location)
 
         if res.get("success"):
             preds = res["predictions"]
+            market_conf = _confidence_score(res.get("confidence", "Low"))
+            _show_prediction_safety("Market prediction", market_conf)
 
             # Metrics row
             mc1, mc2, mc3 = st.columns(3)
@@ -721,12 +832,20 @@ def page_risk():
         irrig = st.checkbox("Irrigation available?", value=True, key="risk_irrig")
 
     if st.button(_t("🔍 Assess Risk")):
+        if not _validate_crop_choice(crop, crops, _t("crop")):
+            _record_event("risk_assessment", "error", "invalid_crop")
+            return
         prof = _profile()
+        if not _validate_land_budget(prof["land_size"], prof["budget"]):
+            _record_event("risk_assessment", "error", "invalid_profile")
+            return
         res = risk_assessment.assess_risk(
             crop, soil_type=prof["soil_type"], land_size=prof["land_size"],
             budget=prof["budget"], irrigation=irrig,
         )
         level = res["risk_level"]
+        risk_conf = max(0.35, min(0.95, 1 - (float(res["risk_score"]) / 120.0)))
+        _show_prediction_safety("Risk assessment", risk_conf)
         colour = {"Low": "success", "Medium": "warning", "High": "error"}
         getattr(st, colour.get(level, "info"))(_t(f"**Risk Level: {level}** — Score {res['risk_score']}/100"))
 
@@ -762,9 +881,19 @@ def page_yield():
         irrig = st.checkbox("Irrigation available?", value=True, key="yield_irrig")
 
     if st.button(_t("📊 Predict Yield")):
+        if not _validate_crop_choice(crop, crops, _t("crop")):
+            _record_event("yield_prediction", "error", "invalid_crop")
+            return
         prof = _profile()
+        if not _validate_land_budget(prof["land_size"], prof["budget"]):
+            _record_event("yield_prediction", "error", "invalid_profile")
+            return
         res = yield_prediction.predict_yield(crop, prof["land_size"], prof["soil_type"], irrig)
         if res.get("success"):
+            y_score = 0.85
+            for v in res.get("multipliers", {}).values():
+                y_score *= float(v)
+            _show_prediction_safety("Yield prediction", max(0.35, min(0.95, y_score)))
             e = res["estimates"]
             c1, c2, c3 = st.columns(3)
             c1.metric(_t("Conservative"), f"{e['conservative']:.1f} {res['unit']}")
@@ -796,9 +925,20 @@ def page_irrigation():
         stage = st.selectbox("Growth Stage:", list(irrigation_ai._STAGE_MULT.keys()), key="irrig_stage")
 
     if st.button(_t("💧 Get Irrigation Plan")):
+        if not _validate_crop_choice(crop, crops, _t("crop")):
+            _record_event("irrigation_plan", "error", "invalid_crop")
+            return
         prof = _profile()
+        if not _validate_land_budget(prof["land_size"], prof["budget"]):
+            _record_event("irrigation_plan", "error", "invalid_profile")
+            return
         res = irrigation_ai.irrigation_plan(crop, prof["land_size"], stage)
         if res.get("success"):
+            irr_score = 0.88
+            season_label = str(res.get("season", "")).lower()
+            if "zaid" in season_label:
+                irr_score = 0.72
+            _show_prediction_safety("Irrigation planning", irr_score)
             w = res["water_needs"]
             c1, c2, c3 = st.columns(3)
             c1.metric(_t("Daily"), f"{w['daily_litres']:,.0f} L")
@@ -837,11 +977,20 @@ def page_profit():
         irrig = st.checkbox("Irrigation available?", value=True, key="profit_irrig")
 
     if st.button(_t("💰 Predict Profit")):
+        if not _validate_crop_choice(crop, crops, _t("crop")):
+            _record_event("profit_prediction", "error", "invalid_crop")
+            return
         prof = _profile()
+        if not _validate_land_budget(prof["land_size"], prof["budget"]):
+            _record_event("profit_prediction", "error", "invalid_profile")
+            return
         res = profit_predictor.predict_profit(
             crop, prof["land_size"], soil_type=prof["soil_type"], irrigation=irrig,
         )
         if res.get("success"):
+            roi_mod = float(res.get("roi_percent", {}).get("moderate", 0))
+            p_score = 0.85 if roi_mod >= 40 else (0.65 if roi_mod >= 5 else 0.45)
+            _show_prediction_safety("Profit prediction", p_score)
             # Costs
             st.markdown(_t("### Input Costs"))
             ic = res["input_costs"]

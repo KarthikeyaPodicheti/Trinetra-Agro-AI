@@ -74,6 +74,10 @@ Runner observability:
   - `RUNNER_LOG_BACKUP_COUNT`
   - `RUNNER_LOG_RETENTION_DAYS`
 
+Prediction safety:
+- `SAFETY_CONFIDENCE_THRESHOLD=0.70`
+- When module confidence is below threshold, app shows a caution banner and advises verification with local mandi data / KVK / agri officer.
+
 ## 3.1) Release readiness gate (recommended before go-live)
 
 Run one command to validate env, DB, compile checks, production check-only,
@@ -88,6 +92,28 @@ Optional flags:
 ```bash
 python release_readiness.py --skip-runner
 python release_readiness.py --skip-otp-webhook
+```
+
+## 3.2) Testing pipeline commands
+
+Run unit + integration tests:
+
+```bash
+python -m pytest
+```
+
+Run smoke verification:
+
+```bash
+python quick_start.py
+```
+
+Recommended local verification order:
+
+```bash
+python -m pytest
+python -m compileall app quick_start.py healthcheck.py otp_gateway.py production_runner.py
+python release_readiness.py --skip-runner --skip-otp-webhook
 ```
 
 ## 4) Docker deployment
