@@ -465,10 +465,6 @@ Demo user might not exist in the database.
 
 ---
 
-## 👥 Team
-
-Built by Uday and team as part of our engineering project.
-
 - **Demo Login:** `demo@farm.com` / `demo123456`
 - **GitHub:** https://github.com/KarthikeyaPodicheti/Trinetra-Agro-AI
 - **Backend API Docs:** http://localhost:8000/docs (when running locally)
