@@ -1,387 +1,492 @@
 # 🔱 Trinetra Agro AI
-## Vision Beyond the Fields - The All-Seeing Farming Intelligence
 
-> **"Like Trinetra (third eye) sees what others cannot, your AI sees what normal farming methods cannot. A system that looks beyond the physical farm and predicts the unseen future."**
-
-[![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://your-app-url.streamlit.app)
+> An AI-powered farming assistant web app that helps farmers with crop recommendations, disease detection, market price forecasting, and more — through a simple chat-based interface.
 
 ---
 
-## 🌟 **Project Overview**
+## 📋 Table of Contents
 
-Trinetra Agro AI is an advanced artificial intelligence-powered agricultural chatbot that provides comprehensive farming intelligence including:
-
-- **🔬 Disease Detection** - AI-powered crop disease identification using CNN models
-- **📈 Market Prediction** - Time series forecasting for crop prices using LSTM/Prophet
-- **👨‍🌾 Personalized Farming Advisor** - Customized recommendations based on farmer profile
-- **⚠️ Risk Assessment** - Weather-based crop failure risk analysis
-- **🌾 Yield Prediction** - Smart prediction models using Random Forest/XGBoost
-- **🗣️ Multilingual Voice AI** - Telugu, Hindi, and English voice support
-- **💬 Conversational AI** - LLM-based intelligent farming conversations
-- **💧 Smart Irrigation** - Optimized water management recommendations
-- **💰 Profit Prediction** - ROI analysis and profit forecasting
+1. [What This App Does](#-what-this-app-does)
+2. [How It Works (Simple Explanation)](#-how-it-works-simple-explanation)
+3. [Project Structure](#-project-structure)
+4. [Setup Guide (Step-by-Step for Beginners)](#-setup-guide-step-by-step-for-beginners)
+5. [Running the App](#-running-the-app)
+6. [How Every Feature Works](#-how-every-feature-works)
+7. [Tech Stack Explained](#-tech-stack-explained)
+8. [API Reference](#-api-reference)
+9. [Troubleshooting](#-troubleshooting)
 
 ---
 
-## 🚀 **Quick Start**
+## 🌾 What This App Does
 
-### Option 1: Automated Setup (Recommended)
+**Trinetra Agro AI** is a web application built for Indian farmers. It has **6 main pages**:
 
-```bash
-# Clone the repository
-git clone https://github.com/KarthikeyaPodicheti/Trinetra-Agro-AI.git
-cd Trinetra-Agro-AI
+| Page | What it does |
+|------|-------------|
+| 📊 **Dashboard** | Home screen with quick stats and farming tips |
+| 🌱 **AI Advisor** | Enter your soil, land, budget → get best crop recommendations |
+| 🔬 **Disease Scanner** | Upload a photo of a sick plant → AI tells you the disease + cure |
+| 📈 **Market Intelligence** | See price forecasts for crops like wheat, rice, cotton |
+| 💬 **AI Chatbot** | Ask farming questions in plain English, get instant AI answers |
+| 📝 **Feedback** | Submit feedback about the app |
 
-# Make setup script executable and run
-chmod +x setup.sh
-./setup.sh
+---
 
-# Start the application
-./start_trinetra.sh
+## 🧠 How It Works (Simple Explanation)
+
+Think of this app as having **two parts** that talk to each other:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        YOUR BROWSER                              │
+│                                                                  │
+│   ┌──────────────────────────────────────────────────────────┐  │
+│   │          FRONTEND  (Streamlit — port 8501)               │  │
+│   │   What you see and click on                              │  │
+│   │   Like the "face" of the app                             │  │
+│   └──────────────────┬───────────────────────────────────────┘  │
+│                      │  sends requests (HTTP)                    │
+│   ┌──────────────────▼───────────────────────────────────────┐  │
+│   │          BACKEND   (FastAPI — port 8000)                 │  │
+│   │   The "brain" — handles logic, AI, database              │  │
+│   │   Talks to: AI engines, Supabase database, OpenRouter    │  │
+│   └──────────────────────────────────────────────────────────┘  │
+│                                                                  │
+│   ┌────────────────┐    ┌────────────────┐                       │
+│   │  Supabase DB   │    │  OpenRouter AI │                       │
+│   │  (cloud data)  │    │  (chatbot LLM) │                       │
+│   └────────────────┘    └────────────────┘                       │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### Option 2: Manual Setup
-
-```bash
-# 1. Create virtual environment
-python3 -m venv trinetra-env
-source trinetra-env/bin/activate  # Linux/Mac
-# trinetra-env\Scripts\activate   # Windows
-
-# 2. Install dependencies
-pip install -r requirements.txt
-
-# 3. Set environment variables
-cp .env.example .env
-# Edit .env with your API keys
-
-# 4. Initialize database
-python -c "from app.database.database import init_db; init_db()"
-
-# 5. Start application
-streamlit run app/main.py
-```
+**In plain English:**
+- You open the app at `http://localhost:8501`
+- You click a button or type a question
+- The frontend sends that to the backend at `http://localhost:8000`
+- The backend runs AI logic and returns an answer
+- The frontend shows you the result
 
 ---
 
-## 📋 **Prerequisites**
-
-### System Requirements
-- **Python 3.8+** 
-- **4GB+ RAM** (8GB recommended for ML models)
-- **2GB+ Storage** (for datasets and models)
-- **Internet Connection** (for APIs and model downloads)
-
-### Required Accounts & API Keys
-1. **OpenAI API** (for advanced chat) - https://openai.com/api/
-2. **OpenWeatherMap API** (for weather data) - https://openweathermap.org/api
-3. **Government Data APIs** (for market prices) - https://data.gov.in/
-
----
-
-## 🏗️ **Project Structure**
+## 📁 Project Structure
 
 ```
 Trinetra-Agro-AI/
-├── 📁 app/                          # Main application
-│   ├── 🤖 chatbot/                  # Core chatbot logic
-│   ├── 🧠 ai_modules/               # AI feature modules
-│   │   ├── disease_detection/       # CNN disease models
-│   │   ├── market_prediction/       # Time series models
-│   │   ├── crop_advisor/           # Recommendation engine
-│   │   ├── voice_ai/               # Speech processing
-│   │   └── ...                     # Other AI modules
-│   ├── 🛠️ utils/                   # Helper functions
-│   ├── 🗄️ database/               # Database models
-│   └── 🎨 static/                  # Frontend assets
-├── 📊 data/                        # Datasets and data files
-├── 🧮 models/                      # Trained ML models
-├── 📓 notebooks/                   # Jupyter experiments
-├── 🧪 tests/                       # Test files
-├── ⚙️ config/                      # Configuration files
-├── 📜 scripts/                     # Utility scripts
-├── 🔧 requirements.txt             # Python dependencies
-├── 🗺️ ROADMAP.md                   # Detailed development guide
-└── 📖 README.md                    # This file
+│
+├── 📂 frontend/                  ← What the user sees (Streamlit UI)
+│   ├── app.py                    ← Main app file, login screen, navigation
+│   ├── api_client.py             ← Sends HTTP requests to backend
+│   ├── requirements.txt          ← Frontend dependencies
+│   └── 📂 views/                 ← One file per page
+│       ├── dashboard.py          ← Home page
+│       ├── advisor.py            ← AI Crop Advisor page
+│       ├── disease.py            ← Disease Scanner page
+│       ├── market.py             ← Market Intelligence page
+│       ├── chatbot.py            ← AI Chatbot page
+│       └── feedback.py           ← Feedback page
+│
+├── 📂 backend/                   ← The "brain" (FastAPI API server)
+│   ├── main.py                   ← Starts the backend server
+│   ├── requirements.txt          ← Backend dependencies
+│   ├── 📂 auth/                  ← Login, register, JWT tokens
+│   ├── 📂 core/                  ← Settings, security, config
+│   ├── 📂 database/              ← Database connection
+│   ├── 📂 models/                ← Database table definitions
+│   ├── 📂 routers/               ← API route handlers
+│   ├── 📂 schemas/               ← Data validation
+│   └── 📂 services/              ← Business logic
+│
+├── 📂 ai_engine/                 ← Pure AI/ML logic (no web code)
+│   ├── market_forecasting/       ← Price prediction engine
+│   ├── recommendation_engine/    ← Crop advisor engine
+│   └── disease_detection/        ← Plant disease analyzer
+│
+├── 📂 supabase/                  ← Cloud database setup
+│   └── 📂 migrations/            ← SQL scripts that create tables
+│
+├── .env                          ← Secret keys and database URL (DO NOT SHARE)
+└── README.md                     ← This file
 ```
 
 ---
 
-## 🎯 **Features Overview**
+## 🚀 Setup Guide (Step-by-Step for Beginners)
 
-### 1. **🔬 AI Disease Detection**
-- **Technology**: CNN (ResNet50/MobileNet) with Transfer Learning
-- **Dataset**: PlantVillage + Custom Indian crop diseases
-- **Accuracy**: 94.2% on validation set
-- **Supported Crops**: 14+ major crops including Rice, Cotton, Wheat, Tomato
-- **Output**: Disease name, confidence score, severity level, treatment recommendations
-
-**Usage:**
-```python
-from app.ai_modules.disease_detection import DiseaseDetector
-
-detector = DiseaseDetector()
-result = detector.predict_disease("path/to/leaf_image.jpg")
-print(f"Disease: {result['disease']} (Confidence: {result['confidence']:.2%})")
-```
-
-### 2. **📈 Smart Market Prediction**
-- **Models**: ARIMA, LSTM, Prophet
-- **Forecast Period**: 7-30 days
-- **Accuracy**: 87% price direction accuracy
-- **Data Sources**: Government agricultural portals, mandis
-- **Features**: Price trends, volatility analysis, buy/sell recommendations
-
-**Usage:**
-```python
-from app.ai_modules.market_prediction import MarketPredictor
-
-predictor = MarketPredictor()
-prediction = predictor.forecast_price("rice", location="hyderabad", days=14)
-print(f"Predicted price in 7 days: ₹{prediction['price_7_days']}")
-```
-
-### 3. **👨‍🌾 Personalized Farming Advisor**
-- **Algorithm**: Hybrid Recommendation System (Collaborative + Content-based)
-- **Factors**: Soil type, climate, budget, historical data
-- **Personalization**: Individual farmer profiles and preferences
-- **Recommendations**: Crop selection, planting schedule, resource optimization
-
-### 4. **🗣️ Multilingual Voice AI**
-- **Languages**: English, Telugu (తెలుగు), Hindi (हिंदी)
-- **Speech Recognition**: OpenAI Whisper
-- **TTS**: Google Text-to-Speech with Indian voice support
-- **NLP**: Intent classification and entity extraction
-
-### 5. **💧 Smart Irrigation System**
-- **Input Factors**: Soil moisture, weather forecast, crop stage
-- **Optimization**: Water conservation with maximum yield
-- **Schedule**: Day-wise irrigation recommendations
-- **Integration**: IoT sensor data support (future)
+> **Time needed:** About 15–20 minutes  
+> **Difficulty:** Beginner — just follow each step carefully
 
 ---
 
-## 🛠️ **Development Guide**
+### Step 1 — Install Python 3.9
 
-### Phase 1: Basic Setup (Week 1-2)
+> ⚠️ This project requires **Python 3.9 specifically**. Other versions may not work.
+
+1. Go to: https://www.python.org/downloads/release/python-3913/
+2. Scroll down, click **"Windows installer (64-bit)"**
+3. Run the installer
+4. ✅ **IMPORTANT:** Check the box that says **"Add Python to PATH"** before clicking Install
+5. Click **Install Now**
+
+**Verify it worked** — open Command Prompt and type:
+```
+py -3.9 --version
+```
+You should see: `Python 3.9.x`
+
+---
+
+### Step 2 — Install Git
+
+1. Go to: https://git-scm.com/download/windows
+2. Download and run the installer (keep all default settings, just click Next)
+
+**Verify it worked:**
+```
+git --version
+```
+You should see something like: `git version 2.x.x`
+
+---
+
+### Step 3 — Clone the Project
+
+Open **Command Prompt** (press Windows key, type "cmd", press Enter) and run:
+
 ```bash
-# 1. Environment setup
-./setup.sh
-
-# 2. Run basic chatbot
-streamlit run app/main.py
-
-# 3. Test core features
-python -m pytest tests/unit/
+git clone https://github.com/KarthikeyaPodicheti/Trinetra-Agro-AI.git
 ```
 
-### Phase 2: AI Model Development (Week 3-8)
-
-**Disease Detection Model Training:**
+Then navigate into the folder:
 ```bash
-# Download PlantVillage dataset
-python scripts/data_collection/download_plant_dataset.py
-
-# Train CNN model
-python scripts/model_training/train_disease_detection.py
-
-# Evaluate model
-python scripts/model_training/evaluate_disease_model.py
+cd Trinetra-Agro-AI
 ```
 
-**Market Prediction Setup:**
+> 💡 **What is `cd`?** It means "change directory" — it takes you inside the project folder.
+
+---
+
+### Step 4 — Create the `.env` File
+
+The app needs a file called `.env` that contains secret keys (API keys, database password). This file is **not on GitHub** for security reasons — you need to create it yourself.
+
+1. Inside the `Trinetra-Agro-AI` folder, create a new file named exactly `.env` (with the dot)
+2. Copy and paste this content into it:
+
+```env
+# OpenRouter API Key (powers the AI chatbot)
+# Get this from your teammate Uday — do NOT put real keys in public files
+OPENROUTER_API_KEY=your-openrouter-api-key-here
+OPENROUTER_MODEL=google/gemma-4-26b-a4b-it:free
+
+# Database (Supabase PostgreSQL - already set up in the cloud)
+# Get this connection string from your teammate Uday
+DATABASE_URL=your-supabase-database-url-here
+
+# Supabase Details
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_PROJECT_REF=your-project-ref
+
+# App Settings
+ENVIRONMENT=production
+DEBUG=False
+SECRET_KEY=trinetra-agro-ai-dev-secret-key-change-in-production
+REQUIRE_LOGIN=false
+```
+
+> 🔐 **Get the real values from your teammate (Uday).** He will share the actual `.env` file privately (via WhatsApp/email) — never put real API keys on GitHub!
+
+> 💡 **How to create this file:**
+> - Open Notepad
+> - Paste the content above
+> - Click File → Save As
+> - Navigate to the `Trinetra-Agro-AI` folder
+> - Change "Save as type" to "All Files"
+> - Name it `.env` (with the dot, no .txt extension)
+> - Click Save
+
+---
+
+### Step 5 — Install Backend Dependencies
+
+In Command Prompt (make sure you're still inside `Trinetra-Agro-AI`):
+
 ```bash
-# Collect historical price data
-python scripts/data_collection/collect_market_data.py
-
-# Train time series models
-python scripts/model_training/train_market_models.py
+py -3.9 -m pip install -r backend/requirements.txt
 ```
 
-### Phase 3: Integration & Testing (Week 9-12)
+> ⏳ This will download about 20+ packages. It may take 3–5 minutes. Wait for it to finish.
+
+---
+
+### Step 6 — Install Frontend Dependencies
+
 ```bash
-# Integration tests
-python -m pytest tests/integration/
-
-# Performance testing
-python scripts/testing/performance_test.py
-
-# User acceptance testing
-python scripts/testing/uat_scenarios.py
+py -3.9 -m pip install -r frontend/requirements.txt
 ```
+
+> ⏳ This is faster — only 3 packages. Should finish in under a minute.
 
 ---
 
-## 🔗 **API Integration Guide**
+### Step 7 — Verify Everything Installed
 
-### Weather API Setup
-```python
-# In your .env file
-WEATHER_API_KEY=your_openweathermap_api_key
-
-# Usage in code
-from app.utils.weather import WeatherService
-weather = WeatherService()
-forecast = weather.get_forecast("Hyderabad")
-```
-
-### Market Data API
-```python
-# Government agricultural data
-from app.utils.market_data import MarketDataCollector
-market = MarketDataCollector()
-prices = market.get_current_prices("rice")
-```
-
----
-
-## 📱 **User Interface Features**
-
-### Streamlit Web Interface
-- **Responsive Design** for desktop and mobile
-- **Interactive Chat** with rich media support
-- **Image Upload** for disease detection
-- **Data Visualization** for market trends
-- **Multi-language Support** with easy switching
-
-### Key UI Components:
-1. **Smart Chat Interface** - Natural language conversations
-2. **Disease Detection Panel** - Image upload and analysis
-3. **Market Dashboard** - Price charts and predictions
-4. **Farmer Profile** - Personalized recommendations
-5. **Voice Input** - Speech-to-text functionality
-
----
-
-## 🧪 **Testing**
-
-### Run Tests
 ```bash
-# Unit tests
-python -m pytest tests/unit/ -v
-
-# Integration tests  
-python -m pytest tests/integration/ -v
-
-# Full test suite
-python -m pytest tests/ --cov=app/
-
-# Performance tests
-python scripts/testing/load_test.py
+py -3.9 -c "import fastapi, streamlit, httpx; print('All good!')"
 ```
 
-### Manual Testing Scenarios
-1. **Disease Detection**: Upload crop images and verify accuracy
-2. **Market Prediction**: Test with different crops and locations
-3. **Voice AI**: Test speech recognition in different languages
-4. **Conversation Flow**: Verify context preservation across sessions
+You should see: `All good!`
 
 ---
 
-## 📊 **Performance Metrics**
+## ▶️ Running the App
 
-### Model Performance
-- **Disease Detection**: 94.2% accuracy, 0.8s inference time
-- **Market Prediction**: 87% directional accuracy, sub-second predictions
-- **Response Time**: <2 seconds for chat responses
-- **Multilingual Support**: 95%+ accuracy for Telugu/Hindi
+You need to open **two separate Command Prompt windows** — one for the backend, one for the frontend.
 
-### System Metrics
-- **Concurrent Users**: Supports 100+ simultaneous users
-- **Uptime**: 99.9% availability target
-- **Database**: SQLite (development), PostgreSQL/MySQL (production)
+### Terminal 1 — Start the Backend
 
----
-
-## 🚀 **Deployment Options**
-
-### Local Development
 ```bash
-# Development with hot reload
-./dev_trinetra.sh
-
-# Production-like setup
-./start_trinetra.sh
+cd Trinetra-Agro-AI
+py -3.9 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### Cloud Deployment
+✅ You should see:
+```
+INFO:     Uvicorn running on http://0.0.0.0:8000
+INFO:     Application startup complete.
+```
 
-**Streamlit Cloud:**
+> Keep this window open. **Do not close it.**
+
+---
+
+### Terminal 2 — Start the Frontend
+
+Open a **new** Command Prompt window and run:
+
 ```bash
-# Push to GitHub and connect to Streamlit Cloud
-git push origin main
-# Configure secrets in Streamlit Cloud dashboard
+cd Trinetra-Agro-AI
+py -3.9 -m streamlit run frontend/app.py --server.port 8501
 ```
 
-**Docker Deployment:**
-```bash
-# Build Docker image
-docker build -t trinetra-agro-ai .
-
-# Run container
-docker run -p 8501:8501 trinetra-agro-ai
+✅ You should see:
+```
+You can now view your Streamlit app in your browser.
+Local URL: http://localhost:8501
 ```
 
-**AWS/GCP/Azure:**
-- See `docs/deployment/` for cloud-specific guides
+---
+
+### Open the App
+
+Open your browser and go to: **http://localhost:8501**
+
+**Login credentials:**
+```
+Email:    demo@farm.com
+Password: demo123456
+```
 
 ---
 
-## 🆘 **Support & Documentation**
+## 🔍 How Every Feature Works
 
-### Documentation
-- 📖 **User Guide**: `docs/user_guide/`
-- 🔧 **API Documentation**: `docs/api/`
-- 🏗️ **Developer Guide**: `docs/technical/`
-- 🚀 **Deployment Guide**: `docs/deployment/`
+### 🌱 AI Advisor — How does it recommend crops?
 
----
+**You enter:** Soil type, land size, budget, season  
+**It does:** Runs a scoring algorithm that matches your farm conditions against a database of 20+ crops  
+**It returns:** Top 3–5 crops with match score, profit estimate, water needs, and disease risks
 
-## 🏆 **Roadmap & Future Plans**
+**Code location:** `ai_engine/recommendation_engine/engine.py`
 
-### Near-term (Next 3 months)
-- [ ] **Mobile App**: React Native/Flutter app
-- [ ] **IoT Integration**: Sensor data integration
-- [ ] **Advanced Analytics**: Farmer dashboard with insights
-- [ ] **API Marketplace**: Open API for third-party integration
-
-### Long-term (6+ months)
-- [ ] **Satellite Data**: Remote sensing integration
-- [ ] **Blockchain**: Supply chain tracking
-- [ ] **AI Marketplace**: Custom model marketplace
-- [ ] **Government Integration**: Policy and subsidy information
+The engine scores each crop on:
+- Does it match your soil type? (+points)
+- Is it the right season (Kharif/Rabi)? (+points)
+- Do you have enough budget? (+points)
+- Is irrigation available? (+points)
 
 ---
 
-## 🙏 **Acknowledgments**
+### 🔬 Disease Scanner — How does it detect disease?
 
-- **PlantVillage Dataset** for disease detection training data
-- **Government of India** for agricultural data APIs
-- **OpenAI** for language model capabilities
-- **Streamlit Community** for the amazing framework
-- **Indian Agricultural Research Institute** for domain expertise
+**You upload:** A photo of a sick plant  
+**It does:** Uses OpenCV (computer vision) to analyze color patterns, texture, and spots in the image  
+**It returns:** Disease name, confidence score, severity, treatment steps, prevention tips
+
+**Code location:** `ai_engine/disease_detection/inference.py`
+
+The analyzer looks at:
+- Color signatures (yellowing = nutrient deficiency, brown spots = fungal infection)
+- Texture irregularities
+- Spot patterns on leaves
+
+> 💡 **Note:** This uses a rule-based computer vision system (not a trained deep learning model), so it works without a GPU.
 
 ---
 
-## 📞 **Contact Information**
+### 📈 Market Intelligence — Where do the prices come from?
 
-**Project Maintainer**: Kartikeya Podicheti  
-**Email**: karthikeyapodicheti25@gmail.com  
-**GitHub**: [@KarthikeyaPodicheti](https://github.com/KarthikeyaPodicheti)
+**You select:** Crop + forecast days (7–30 days)  
+**It does:** Uses a statistical model (moving average + random walk simulation) to predict price trends  
+**It returns:** Daily price forecast chart, buy/sell/hold recommendation
+
+**Code location:** `ai_engine/market_forecasting/engine.py`
+
+The engine uses:
+- Real base prices from government MSP data (hardcoded)
+- A seeded random walk simulation (consistent for the same day)
+- 7-day moving average to smooth out noise
+
+> 💡 **Note:** Prices are simulated (not live market data) since we don't have a paid market API. The trends are realistic and useful for demonstration.
 
 ---
 
-<div align="center">
+### 💬 AI Chatbot — How does it answer questions?
 
-### 🔱 **"Vision Beyond the Fields"** 🔱
+**You type:** Any farming question in English  
+**It does:** Sends your message to OpenRouter AI (a free AI API), gets a farming-focused answer  
+**It returns:** An intelligent text response
 
-*Empowering farmers with AI intelligence for a more productive and sustainable future*
+**Code location:** `backend/services/chatbot_service.py` + `backend/services/openrouter_service.py`
 
-**Made with ❤️ for Indian Farmers**
+The chatbot:
+1. Takes your message
+2. Adds a system prompt: *"You are an expert Indian farming assistant..."*
+3. Sends it to the AI model via OpenRouter API
+4. Returns the AI's response
+5. Maintains chat history within your session
 
-[![Star this repo](https://img.shields.io/badge/⭐-Star%20this%20repo-yellow.svg)](https://github.com/KarthikeyaPodicheti/Trinetra-Agro-AI/stargazers)
-[![Follow on GitHub](https://img.shields.io/badge/👤-Follow%20on%20GitHub-green.svg)](https://github.com/KarthikeyaPodicheti)
+**AI Model used:** `google/gemma-4-26b-a4b-it:free` (free tier via OpenRouter)
 
-</div>
+---
+
+### 🔐 Login System — How does authentication work?
+
+When you log in:
+1. You send email + password to `/auth/login`
+2. Backend checks your password against the hashed password in the database
+3. If correct, it creates two tokens:
+   - **Access Token** (valid for 30 minutes) — lets you use the app
+   - **Refresh Token** (valid for 7 days) — lets you get a new access token
+4. These tokens are stored in your browser session
+5. Every time you click something, the token is sent to the backend to verify you're logged in
+
+This is called **JWT (JSON Web Token) authentication** — the industry standard for web apps.
+
+---
+
+## 🛠️ Tech Stack Explained
+
+| Layer | Technology | What it does | Why we use it |
+|-------|-----------|--------------|---------------|
+| **Frontend** | Streamlit | Builds the UI in Python | Simple to write, no HTML/CSS needed |
+| **Backend** | FastAPI | API server | Fast, modern, automatic docs |
+| **Database** | Supabase (PostgreSQL) | Stores users, analyses | Free cloud database |
+| **AI Chat** | OpenRouter + Gemma | Powers the chatbot | Free AI API |
+| **Auth** | JWT tokens | Secure login | Industry standard |
+| **ORM** | SQLAlchemy | Talks to database | Pythonic database access |
+| **HTTP** | httpx | Frontend talks to backend | Async HTTP client |
+
+### Why Two Separate Servers?
+
+Most web apps have a **frontend** (what you see) and a **backend** (the logic). We split them so:
+- The backend can be deployed on a server (like AWS, Heroku)
+- The frontend can be deployed separately (like Streamlit Cloud)
+- Other apps could also use the backend API (e.g., a mobile app)
+
+---
+
+## 📡 API Reference
+
+The backend exposes these endpoints. You can view them at **http://localhost:8000/docs**
+
+### Authentication
+| Method | URL | What it does |
+|--------|-----|-------------|
+| POST | `/auth/register` | Create a new account |
+| POST | `/auth/login` | Login, get tokens |
+| POST | `/auth/refresh` | Get new access token |
+| GET  | `/auth/me` | Get your profile |
+
+### AI Features
+| Method | URL | What it does |
+|--------|-----|-------------|
+| POST | `/ai/advisor` | Get crop recommendations |
+| POST | `/ai/market` | Get price forecast |
+| POST | `/chat/send` | Send a chatbot message |
+| POST | `/chat/clear` | Clear chat history |
+| POST | `/disease/analyze` | Analyze plant disease from image |
+
+### System
+| Method | URL | What it does |
+|--------|-----|-------------|
+| GET | `/health` | Check if backend is running |
+| GET | `/docs` | Interactive API documentation |
+
+---
+
+## 🔧 Troubleshooting
+
+### ❌ "py is not recognized as a command"
+You forgot to check "Add Python to PATH" during installation.  
+**Fix:** Reinstall Python and tick that checkbox.
+
+---
+
+### ❌ "ModuleNotFoundError: No module named 'fastapi'"
+Dependencies aren't installed.  
+**Fix:** Run `py -3.9 -m pip install -r backend/requirements.txt` again.
+
+---
+
+### ❌ "Address already in use" on port 8000 or 8501
+Another process is using that port.  
+**Fix:** Close all Command Prompt windows, wait 10 seconds, try again.
+
+---
+
+### ❌ "Connection refused" — Frontend can't reach backend
+The backend isn't running.  
+**Fix:** Make sure Terminal 1 (backend) is still open and running.
+
+---
+
+### ❌ Chatbot says "connection error"
+The backend isn't running or the `.env` file is missing the API key.  
+**Fix:**
+1. Check Terminal 1 is still running
+2. Check your `.env` file has `OPENROUTER_API_KEY=...`
+
+---
+
+### ❌ Login fails with "Invalid email or password"
+Demo user might not exist in the database.  
+**Fix:** Try registering a new account using the Register tab on the login screen.
+
+---
+
+## 👥 Team
+
+Built by Uday and team as part of our engineering project.
+
+- **Demo Login:** `demo@farm.com` / `demo123456`
+- **GitHub:** https://github.com/KarthikeyaPodicheti/Trinetra-Agro-AI
+- **Backend API Docs:** http://localhost:8000/docs (when running locally)
+
+---
+
+## 📌 Quick Reference Card
+
+```
+START APP:
+  Terminal 1: py -3.9 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+  Terminal 2: py -3.9 -m streamlit run frontend/app.py --server.port 8501
+
+OPEN APP:   http://localhost:8501
+API DOCS:   http://localhost:8000/docs
+LOGIN:      demo@farm.com / demo123456
+
+INSTALL:
+  py -3.9 -m pip install -r backend/requirements.txt
+  py -3.9 -m pip install -r frontend/requirements.txt
+```
