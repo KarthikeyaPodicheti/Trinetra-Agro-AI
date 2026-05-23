@@ -86,3 +86,10 @@ SESSION_CONTEXT.md
 
 # Supabase temp files
 supabase/.temp/
+ 
+# Large datasets and models 
+datasets/ 
+ai_engine/disease_detection/models/*.h5 
+frontend-next/node_modules/ 
+frontend-next/.next/ 
+commit_msg.txt 

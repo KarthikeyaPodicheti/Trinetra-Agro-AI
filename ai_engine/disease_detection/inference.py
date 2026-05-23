@@ -68,9 +68,14 @@ class DiseaseDetector:
         return self.model is not None
 
     def predict(self, image_bytes: bytes, crop_type: str = "rice") -> Dict[str, Any]:
-        """Predict disease from raw image bytes."""
+        """Predict disease from raw image bytes.
+        Uses TF model if loaded and confidence > threshold, otherwise falls back to lookup table.
+        """
         if self.is_loaded:
-            return self._predict_tf(image_bytes)
+            result = self._predict_tf(image_bytes)
+            # If confidence is too low, fall back to lookup for better results
+            if result["confidence"] >= 0.3:
+                return result
         return self._predict_fallback(crop_type)
 
     def _predict_tf(self, image_bytes: bytes) -> Dict[str, Any]:

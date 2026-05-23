@@ -14,6 +14,7 @@ from backend.auth.router import router as auth_router
 from backend.routers.ai_features import router as ai_router
 from backend.routers.chatbot import router as chatbot_router
 from backend.routers.disease import router as disease_router
+from backend.routers.feedback import router as feedback_router
 from backend.core.config import get_settings
 from backend.database.session import get_engine
 from backend.middleware.logging import LoggingMiddleware
@@ -58,6 +59,7 @@ app.include_router(auth_router)
 app.include_router(ai_router)
 app.include_router(chatbot_router)
 app.include_router(disease_router)
+app.include_router(feedback_router)
 
 
 @app.get("/health", tags=["system"])

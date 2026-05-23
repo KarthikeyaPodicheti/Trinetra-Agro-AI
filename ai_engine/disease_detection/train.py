@@ -1,124 +1,170 @@
-"""Disease Detection training — MobileNetV2 feature extraction on PlantVillage."""
+"""Disease Detection training — MobileNetV2 with augmentation + fine-tuning.
+
+Usage:
+  1. Download PlantVillage from https://www.kaggle.com/datasets/vipoooool/new-plant-diseases-dataset
+  2. Extract into: datasets/plantvillage/  (subfolders per class)
+  3. Run: python -m ai_engine.disease_detection.train
+"""
 
 import os
-import sys
-import tarfile
 from pathlib import Path
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 
-# ---- Config ----
+# ── Config ──────────────────────────────────────────────────────────────────
 IMG_SIZE = (224, 224)
 BATCH_SIZE = 32
-EPOCHS = 10
-NUM_CLASSES = 38  # PlantVillage has 38 disease classes
+EPOCHS_FEATURE_EXTRACTION = 15
+EPOCHS_FINETUNE = 10
+FINETUNE_LEARNING_RATE = 1e-5
 MODEL_DIR = Path(__file__).parent / "models"
-DATASET_DIR = Path(__file__).parent.parent.parent / "datasets" / "plantvillage"
+LOCAL_DATA_DIR = Path(__file__).parent.parent.parent / "datasets" / "plantvillage"
 
 os.makedirs(MODEL_DIR, exist_ok=True)
 
 
-def download_plantvillage(target_dir: Path) -> bool:
-    """Download PlantVillage dataset archive."""
-    url = "https://storage.googleapis.com/download.tensorflow.org/example_images/flower_photos.tgz"
-    archive_path = target_dir / "plantvillage.tgz"
-    os.makedirs(target_dir, exist_ok=True)
-
-    if not archive_path.exists():
-        print("Downloading sample dataset (for demo — use real PlantVillage for production)...")
-        tf.keras.utils.get_file(archive_path, url, cache_dir=str(target_dir), cache_subdir=".")
-        return True
-
-    print("Dataset already downloaded.")
-    return False
-
-
-def build_model() -> tf.keras.Model:
+def build_model(num_classes: int) -> tf.keras.Model:
     """Build MobileNetV2 with frozen base + new classification head."""
     base = tf.keras.applications.MobileNetV2(
         input_shape=(*IMG_SIZE, 3),
         include_top=False,
         weights="imagenet",
     )
-    base.trainable = False  # Freeze — feature extraction only
+    base.trainable = False
 
     inputs = keras.Input(shape=(*IMG_SIZE, 3))
     x = tf.keras.applications.mobilenet_v2.preprocess_input(inputs)
     x = base(x, training=False)
     x = layers.GlobalAveragePooling2D()(x)
-    x = layers.Dropout(0.2)(x)
-    outputs = layers.Dense(NUM_CLASSES, activation="softmax")(x)
+    x = layers.Dropout(0.3)(x)
+    x = layers.Dense(256, activation="relu")(x)
+    x = layers.Dropout(0.3)(x)
+    outputs = layers.Dense(num_classes, activation="softmax")(x)
 
     model = keras.Model(inputs, outputs)
-    model.compile(
-        optimizer=keras.optimizers.Adam(learning_rate=0.001),
-        loss="categorical_crossentropy",
-        metrics=["accuracy"],
-    )
     return model
 
 
 def train():
-    print("TensorFlow version:", tf.__version__)
-    print("Building MobileNetV2 model...")
-    model = build_model()
-    model.summary()
+    print("TensorFlow:", tf.__version__)
+    print("GPU available:", tf.config.list_physical_devices("GPU"))
 
-    # Check for real PlantVillage data, use sample if not available
-    if DATASET_DIR.exists() and any(DATASET_DIR.iterdir()):
-        print(f"Loading dataset from {DATASET_DIR}...")
-        train_ds = tf.keras.preprocessing.image_dataset_from_directory(
-            str(DATASET_DIR),
+    # ── Load dataset ────────────────────────────────────────────────────────
+    if LOCAL_DATA_DIR.exists() and any(LOCAL_DATA_DIR.iterdir()):
+        print(f"Loading dataset from {LOCAL_DATA_DIR}...")
+        train_ds = keras.preprocessing.image_dataset_from_directory(
+            str(LOCAL_DATA_DIR),
             validation_split=0.2,
             subset="training",
-            seed=123,
+            seed=42,
             image_size=IMG_SIZE,
             batch_size=BATCH_SIZE,
+            label_mode="int",
         )
-        val_ds = tf.keras.preprocessing.image_dataset_from_directory(
-            str(DATASET_DIR),
+        val_ds = keras.preprocessing.image_dataset_from_directory(
+            str(LOCAL_DATA_DIR),
             validation_split=0.2,
             subset="validation",
-            seed=123,
+            seed=42,
             image_size=IMG_SIZE,
             batch_size=BATCH_SIZE,
+            label_mode="int",
         )
+        class_names = train_ds.class_names
+        num_classes = len(class_names)
+        print(f"Classes ({num_classes}): {class_names}")
     else:
-        print(f"PlantVillage dataset not found at {DATASET_DIR}.")
-        print("Using synthetic data for demonstration — train with real data for production.")
-        # Create synthetic dataset for testing the pipeline
-        num_samples = 100
-        x_train = np.random.rand(num_samples, *IMG_SIZE, 3).astype(np.float32)
-        y_train = tf.keras.utils.to_categorical(np.random.randint(0, NUM_CLASSES, num_samples), NUM_CLASSES)
-        x_val = np.random.rand(20, *IMG_SIZE, 3).astype(np.float32)
-        y_val = tf.keras.utils.to_categorical(np.random.randint(0, NUM_CLASSES, 20), NUM_CLASSES)
-        train_ds = tf.data.Dataset.from_tensor_slices((x_train, y_train)).batch(BATCH_SIZE)
-        val_ds = tf.data.Dataset.from_tensor_slices((x_val, y_val)).batch(BATCH_SIZE)
-        print("*** TRAINING ON SYNTHETIC DATA — MODEL WILL NOT PREDICT REAL DISEASES ***")
-        print(f"    Place real PlantVillage images in: {DATASET_DIR}")
+        print(f"No dataset found at {LOCAL_DATA_DIR}")
+        print(f"Download PlantVillage from Kaggle and extract to: {LOCAL_DATA_DIR}")
+        return
 
-    print("Training...")
-    history = model.fit(train_ds, validation_data=val_ds, epochs=EPOCHS)
+    # ── Data augmentation ───────────────────────────────────────────────────
+    augmentation = keras.Sequential([
+        layers.RandomFlip("horizontal_and_vertical"),
+        layers.RandomRotation(0.15),
+        layers.RandomZoom(0.1),
+        layers.RandomBrightness(0.15),
+        layers.RandomContrast(0.1),
+    ])
 
-    model_path = MODEL_DIR / "mobilenetv2_plantvillage.h5"
-    model.save(str(model_path))
-    print(f"Model saved to {model_path}")
+    AUTOTUNE = tf.data.AUTOTUNE
+    train_ds = train_ds.map(
+        lambda x, y: (augmentation(x, training=True), y),
+        num_parallel_calls=AUTOTUNE,
+    ).prefetch(AUTOTUNE)
+    val_ds = val_ds.prefetch(AUTOTUNE)
 
-    # Save class names
-    class_path = MODEL_DIR / "class_names.txt"
-    if DATASET_DIR.exists() and any(DATASET_DIR.iterdir()):
-        class_names = sorted(d.name for d in DATASET_DIR.iterdir() if d.is_dir())
-    else:
-        class_names = [f"class_{i}" for i in range(NUM_CLASSES)]
-    with open(class_path, "w") as f:
-        f.write("\n".join(class_names))
-    print(f"Class names saved to {class_path}")
+    # ── Phase 1: Feature extraction ─────────────────────────────────────────
+    print("\n" + "=" * 60)
+    print("Phase 1: Feature extraction (frozen MobileNetV2)")
+    print("=" * 60)
+
+    model = build_model(num_classes)
+    model.compile(
+        optimizer=keras.optimizers.Adam(learning_rate=0.001),
+        loss="sparse_categorical_crossentropy",
+        metrics=["accuracy"],
+    )
+    model.summary()
+
+    history = model.fit(
+        train_ds,
+        validation_data=val_ds,
+        epochs=EPOCHS_FEATURE_EXTRACTION,
+        verbose=1,
+    )
 
     val_acc = max(history.history["val_accuracy"])
-    print(f"Validation accuracy: {val_acc:.2%}")
+    print(f"\nBest validation accuracy after feature extraction: {val_acc:.2%}")
+
+    # ── Phase 2: Fine-tuning ────────────────────────────────────────────────
+    print("\n" + "=" * 60)
+    print("Phase 2: Fine-tuning (unfreeze last 30 layers)")
+    print("=" * 60)
+
+    # Unfreeze the base model
+    base = model.get_layer("mobilenetv2_1.00_224")
+    base.trainable = True
+
+    # Freeze early layers, only fine-tune the last 30
+    for layer in base.layers[:-30]:
+        layer.trainable = False
+
+    model.compile(
+        optimizer=keras.optimizers.Adam(learning_rate=FINETUNE_LEARNING_RATE),
+        loss="sparse_categorical_crossentropy",
+        metrics=["accuracy"],
+    )
+
+    history_ft = model.fit(
+        train_ds,
+        validation_data=val_ds,
+        epochs=EPOCHS_FINETUNE,
+        verbose=1,
+    )
+
+    val_acc_ft = max(history_ft.history["val_accuracy"])
+    print(f"\nBest validation accuracy after fine-tuning: {val_acc_ft:.2%}")
+
+    # ── Save ────────────────────────────────────────────────────────────────
+    model_path = MODEL_DIR / "mobilenetv2_plantvillage.h5"
+    model.save(str(model_path))
+    print(f"\nModel saved: {model_path} ({os.path.getsize(model_path) / 1e6:.1f} MB)")
+
+    class_path = MODEL_DIR / "class_names.txt"
+    with open(class_path, "w") as f:
+        f.write("\n".join(class_names))
+    print(f"Class names saved: {class_path}")
+
+    print("\n✅ Training complete!")
+    print(f"   - Classes: {num_classes}")
+    print(f"   - Feature extraction accuracy: {val_acc:.2%}")
+    print(f"   - Fine-tuned accuracy: {val_acc_ft:.2%}")
     return model
 
 
