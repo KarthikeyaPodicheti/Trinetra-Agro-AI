@@ -9,6 +9,7 @@ _AGRI_KEYWORDS = [
     'pest', 'fungus', 'blight', 'wilt', 'irrigation', 'water', 'rain',
     'fertilizer', 'manure', 'npk', 'market', 'mandi', 'price', 'yield',
     'profit', 'livestock', 'dairy', 'tractor', 'drip', 'sprinkler', 'weather',
+    'hi', 'hello', 'namaste', 'help', 'suggest', 'advice', 'recommend',
 ]
 
 _META_KEYWORDS = ['what model', 'who made you', 'are you gpt', 'openai', 'llm', 'what ai']
@@ -26,15 +27,7 @@ class ChatbotService:
         return any(k in text.lower() for k in _META_KEYWORDS)
 
     async def chat(self, message: str, session_id: str = "default",
-                   farmer_context: Optional[Dict] = None) -> str:
-        if self._is_meta(message):
-            return ("I'm Trinetra Agro AI, built to help farmers with crops, diseases, "
-                    "markets, irrigation, and farm profitability. Ask me anything about farming!")
-
-        if not self._is_agriculture(message):
-            return ("I specialize in farming and agriculture. "
-                    "Please ask about crops, plant diseases, market prices, irrigation, yield, risk, or profit.")
-
+                   farmer_context: Optional[Dict] = None, language: str = "English") -> str:
         if session_id not in self.history:
             self.history[session_id] = []
 
@@ -43,7 +36,7 @@ class ChatbotService:
 
         import asyncio
         loop = asyncio.get_event_loop()
-        response = await loop.run_in_executor(None, self.llm.chat, recent, farmer_context)
+        response = await loop.run_in_executor(None, self.llm.chat, recent, farmer_context, language)
 
         self.history[session_id].append({"role": "assistant", "content": response})
         return response

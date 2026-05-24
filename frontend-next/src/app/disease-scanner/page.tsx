@@ -2,11 +2,13 @@
 
 import { useState, useRef } from "react";
 import { apiClient } from "@/lib/api";
+import { useLang } from "@/lib/language";
 import type { DiseaseResponse } from "@/lib/types";
 
 const CROPS = ["Rice", "Tomato", "Cotton", "Potato", "Wheat"];
 
 export default function DiseaseScannerPage() {
+  const { T } = useLang();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [cropType, setCropType] = useState(CROPS[0]);
@@ -48,13 +50,13 @@ export default function DiseaseScannerPage() {
 
   return (
     <div className="p-6 max-w-5xl">
-      <h2 className="text-2xl font-bold text-gray-800">🔬 AI Disease Scanner</h2>
-      <p className="text-gray-500 mt-1">Upload a leaf image for AI-powered disease detection and treatment recommendations.</p>
+      <h2 className="text-2xl font-bold text-gray-800">🔬 {T("diseaseScannerTitle")}</h2>
+      <p className="text-gray-500 mt-1">{T("diseaseScannerSubtitle")}</p>
 
       <div className="mt-6 grid md:grid-cols-2 gap-6">
         {/* Left — Upload */}
-        <div className="bg-white rounded-xl border border-green-100 p-5 shadow-sm space-y-4">
-          <h3 className="font-semibold text-gray-700">1. Upload Image</h3>
+        <div className="bg-white rounded-xl border border-green-100 p-5 shadow-sm space-y-4 liquid-glass-card">
+          <h3 className="font-semibold text-gray-700">1. {T("uploadImage")}</h3>
           <div
             onClick={() => fileRef.current?.click()}
             className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-green-400 transition"
@@ -64,7 +66,7 @@ export default function DiseaseScannerPage() {
             ) : (
               <div className="text-gray-400">
                 <p className="text-3xl mb-2">📷</p>
-                <p className="text-sm">Click to upload leaf/crop image</p>
+                <p className="text-sm">{T("clickUpload")}</p>
                 <p className="text-xs mt-1">JPG, JPEG, or PNG</p>
               </div>
             )}
@@ -81,7 +83,7 @@ export default function DiseaseScannerPage() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Crop Type</label>
+            <label className="block text-sm font-medium text-gray-600 mb-1">{T("cropType")}</label>
             <select
               value={cropType}
               onChange={(e) => setCropType(e.target.value)}
@@ -96,16 +98,16 @@ export default function DiseaseScannerPage() {
             disabled={!file || loading}
             className="w-full py-2.5 bg-gradient-to-r from-green-600 to-green-500 text-white font-semibold rounded-lg text-sm hover:from-green-700 hover:to-green-600 disabled:opacity-50 transition"
           >
-            {loading ? "AI analyzing your crop image..." : "🔍  Analyze for Disease"}
+            {loading ? "..." : `🔍  ${T("analyzeDisease")}`}
           </button>
         </div>
 
         {/* Right — Diagnosis */}
-        <div className="bg-white rounded-xl border border-green-100 p-5 shadow-sm">
-          <h3 className="font-semibold text-gray-700 mb-3">2. AI Diagnosis</h3>
+        <div className="bg-white rounded-xl border border-green-100 p-5 shadow-sm liquid-glass-card">
+          <h3 className="font-semibold text-gray-700 mb-3">2. {T("aiDiagnosis")}</h3>
 
           {!file && (
-            <p className="text-gray-400 text-sm">👈 Upload an image of a leaf on the left to see the AI diagnosis here.</p>
+            <p className="text-gray-400 text-sm">👈 {T("uploadPrompt")}</p>
           )}
 
           {file && !loading && !result && !error && (

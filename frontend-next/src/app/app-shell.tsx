@@ -4,16 +4,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { getUser, logout } from "@/lib/auth";
+import { useLang, Lang } from "@/lib/language";
 import type { UserResponse } from "@/lib/types";
-
-const NAV_ITEMS = [
-  { label: "📊  Dashboard", path: "/" },
-  { label: "🌱  AI Advisor", path: "/advisor" },
-  { label: "🔬  Disease Scanner", path: "/disease-scanner" },
-  { label: "📈  Market Intelligence", path: "/market" },
-  { label: "💬  AI Chatbot", path: "/chatbot" },
-  { label: "📝  Feedback", path: "/feedback" },
-];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -23,6 +15,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isAuthPage = pathname === "/login" || pathname === "/register";
+  const { lang, setLang, T } = useLang();
+
+  const NAV = [
+    { label: `📊  ${T("dashboard")}`, path: "/" },
+    { label: `🔬  ${T("diseaseScanner")}`, path: "/disease-scanner" },
+    { label: `📈  ${T("marketIntelligence")}`, path: "/market" },
+    { label: `💬  ${T("aiChatbot")}`, path: "/chatbot" },
+    { label: `📝  ${T("feedback")}`, path: "/feedback" },
+  ];
 
   useEffect(() => {
     if (!isAuthPage) {
@@ -50,98 +51,93 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-white">
-        <p className="text-green-600 font-medium">Loading...</p>
-      </div>
-    );
+    return <div className="min-h-screen flex items-center justify-center"><p className="text-[var(--color-brand-primary)] font-medium">Loading...</p></div>;
   }
 
   if (isAuthPage) {
-    return <>{children}</>;
+    return <div>{children}</div>;
   }
 
   const sidebarContent = (
     <>
-      <div className="px-5 py-6 border-b border-green-100">
-        <h1 className="text-lg font-bold text-green-700">🔱 Trinetra Agro AI</h1>
-        <p className="text-xs text-green-500 mt-0.5">Vision Beyond the Fields</p>
+      <div className="px-5 py-6 border-b" style={{ borderColor: "var(--color-border-light)" }}>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-brand-primary)] to-[var(--color-brand-accent)] flex items-center justify-center text-xl shrink-0">{'\u{1F4A1}'}</div>
+          <div>
+            <h1 className="text-base font-bold" style={{ color: "var(--color-brand-deep)" }}>Trinetra Agro AI</h1>
+            <p className="text-[10px]" style={{ color: "var(--color-brand-primary)" }}>Vision Beyond the Fields</p>
+          </div>
+        </div>
       </div>
-      <div className="px-5 py-3 border-b border-green-100 text-sm text-gray-700 truncate">
-        👨‍🌾 {user?.full_name || user?.email || "Farmer"}
+      <div className="px-5 py-3 border-b text-sm truncate" style={{ color: "var(--color-text-secondary)", borderColor: "var(--color-border-light)" }}>
+        {'\u{1F468}\u200D\u{1F33E}'} {user?.full_name || user?.email || "Farmer"}
       </div>
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {NAV_ITEMS.map((item) => {
-          const isActive =
-            pathname === item.path ||
-            (item.path !== "/" && pathname.startsWith(item.path));
+        {NAV.map((item) => {
+          const isActive = pathname === item.path || (item.path !== "/" && pathname.startsWith(item.path));
           return (
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
               className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                isActive
-                  ? "bg-green-100 text-green-800"
-                  : "text-gray-600 hover:bg-green-50 hover:text-green-700"
+                isActive ? "text-[var(--color-brand-deep)]" : "text-gray-600"
               }`}
+              style={{ background: isActive ? "var(--color-brand-lighter)" : "transparent" }}
+              onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "var(--color-surface-hover)"; }}
+              onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
             >
               {item.label}
             </button>
           );
         })}
       </nav>
-      <div className="px-3 pb-4">
-        <button
-          onClick={handleLogout}
-          className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
-        >
-          🚪  Logout
+      <div className="px-3 pb-4 space-y-2">
+        <div className="px-3 py-2">
+          <p className="text-xs font-medium text-gray-500 mb-2">{T("language")}</p>
+          <div className="flex gap-1">
+            {(["English", "Hindi", "Telugu"] as Lang[]).map((l) => (
+              <button key={l} onClick={() => setLang(l)}
+                className={`flex-1 text-xs py-1.5 rounded-md font-medium transition-colors ${lang === l ? "bg-green-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+              >{l === "English" ? "EN" : l === "Hindi" ? "हि" : "తె"}</button>
+            ))}
+          </div>
+        </div>
+        <button onClick={handleLogout} className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium" style={{ color: "var(--color-error)" }}>
+          {'\u{1F6AA}'}  {T("logout")}
         </button>
       </div>
     </>
   );
 
   return (
-    <div className="flex min-h-screen">
+    <div className="app-shell" style={{ display: "flex", minHeight: "100vh" }}>
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex md:flex-col md:w-64 bg-gradient-to-b from-[#FAFFFE] to-[#E8F5E9] border-r border-green-100 shrink-0">
+      <aside className="hidden md:flex md:flex-col md:w-64 shrink-0 liquid-glass-sidebar"
+        style={{ borderRight: "1px solid var(--color-border-light)" }}>
         {sidebarContent}
       </aside>
 
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/30 z-40 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
+        <div className="fixed inset-0 bg-black/30 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-[#FAFFFE] to-[#E8F5E9] border-r border-green-100 shadow-xl transform transition-transform duration-200 md:hidden ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 shadow-xl transform transition-transform duration-200 md:hidden liquid-glass-sidebar ${
+        sidebarOpen ? "translate-x-0" : "-translate-x-full"
+      }`} style={{ borderRight: "1px solid var(--color-border-light)" }}>
         <div className="flex justify-end p-3">
-          <button onClick={() => setSidebarOpen(false)} className="p-1 text-gray-500 hover:text-gray-700">
-            <X size={20} />
-          </button>
+          <button onClick={() => setSidebarOpen(false)} className="p-1 text-gray-500 hover:text-gray-700"><X size={20} /></button>
         </div>
         {sidebarContent}
       </aside>
 
       {/* Main area */}
-      <div className="flex-1 flex flex-col min-h-screen">
-        {/* Mobile top bar */}
-        <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-green-100 bg-white/80 backdrop-blur-sm">
-          <button onClick={() => setSidebarOpen(true)} className="p-1 text-gray-600">
-            <Menu size={22} />
-          </button>
-          <span className="text-sm font-bold text-green-700">🔱 Trinetra Agro AI</span>
-          <span className="text-xs text-gray-500 truncate max-w-[100px]">
-            {user?.full_name || user?.email || ""}
-          </span>
+      <div className="flex-1 flex flex-col min-h-screen" style={{ background: "transparent" }}>
+        <header className="md:hidden flex items-center justify-between px-4 py-3 border-b liquid-glass-header" style={{ borderColor: "var(--color-border-light)" }}>
+          <button onClick={() => setSidebarOpen(true)} className="p-1 text-gray-600"><Menu size={22} /></button>
+          <span className="text-sm font-bold" style={{ color: "var(--color-brand-primary)" }}>Trinetra Agro AI</span>
+          <span className="text-xs text-gray-500 truncate max-w-[100px]">{user?.full_name || user?.email || ""}</span>
         </header>
-
-        <main className="flex-1 bg-gradient-to-br from-green-50 to-white overflow-auto">
+        <main className="flex-1 overflow-y-auto glass-bg">
           {children}
         </main>
       </div>

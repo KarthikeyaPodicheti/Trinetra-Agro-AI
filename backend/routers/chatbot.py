@@ -24,7 +24,7 @@ async def chat_send(req: ChatRequest, db: AsyncSession = Depends(get_db),
             "land_acres": user.farmer.land_size_acres,
             "location": user.farmer.location,
         }
-    reply = await chatbot.chat(req.message, req.session_id, context)
+    reply = await chatbot.chat(req.message, req.session_id, context, req.language)
     return ChatResponse(reply=reply, session_id=req.session_id)
 
 

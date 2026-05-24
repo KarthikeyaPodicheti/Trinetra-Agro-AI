@@ -41,11 +41,13 @@ class OpenRouterService:
     def is_available(self) -> bool:
         return self.api_key is not None
 
-    def chat(self, messages: List[Dict], farmer_context: Optional[Dict] = None) -> str:
+    def chat(self, messages: List[Dict], farmer_context: Optional[Dict] = None, language: str = "English") -> str:
         if not self.api_key:
             return self._fallback(messages[-1]["content"] if messages else "")
 
         system = AGRICULTURE_PROMPT
+        if language != "English":
+            system += f"\n\nIMPORTANT: Respond ONLY in {language}. Use {language} script."
         if farmer_context:
             ctx = ", ".join(f"{k}: {v}" for k, v in farmer_context.items() if v)
             system += f"\n\nFarmer context: {ctx}"

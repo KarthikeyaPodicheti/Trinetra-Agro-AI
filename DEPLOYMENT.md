@@ -1,220 +1,201 @@
-# Deployment Guide
+# Deployment Guide — Vercel + Render (Free)
 
-## 1) Production prerequisites
-- Python 3.11+
-- Managed PostgreSQL database
-- Public HTTPS domain (or managed platform URL)
-- Environment variables configured securely (no `.env` committed)
+## Architecture
 
-## 2) Required environment variables
-- `DATABASE_URL` (PostgreSQL for production)
-- `OPENROUTER_API_KEY` (optional, enables advanced LLM chat)
-- `OPENROUTER_MODEL` (optional)
-- `WEATHER_API_KEY` (optional)
-- `MARKET_DATA_API_KEY` (recommended for live mandi prices)
-- `PORT` (provided by most platforms)
-
-Recommended security variables for public deployments:
-- `REQUIRE_LOGIN=true`
-- `AUTH_MODE=otp` (preferred for farmer-facing deployments)
-- `AUTH_USERNAME=<admin username>`
-- `AUTH_PASSWORD_HASH=<sha256 password hash>`
-- `CHAT_MIN_INTERVAL_SEC=2` (basic per-session throttling)
-- `ENABLE_OPERATIONS_DASHBOARD=true` (admin metrics/events page)
-
-OTP mode variables:
-- `OTP_WEBHOOK_URL` (SMS gateway/webhook endpoint)
-- `OTP_WEBHOOK_BEARER_TOKEN` (optional bearer token)
-- `OTP_SENDER_NAME=Trinetra Agro AI`
-- `OTP_EXPIRY_SEC=300`
-- `OTP_RESEND_INTERVAL_SEC=45`
-- `OTP_MAX_ATTEMPTS=5`
-- `OTP_ALLOW_DEV_FALLBACK=false` (must remain false in production)
-
-For provider wiring details, see `OTP_WEBHOOK_SETUP.md`.
-
-Example PostgreSQL URL:
-
-```text
-postgresql+psycopg2://USER:PASSWORD@HOST:5432/DB_NAME
+```
+User → https://trinetra-agro.vercel.app (Vercel, free)
+                  │
+          Next.js Frontend (always-on)
+                  │
+          API calls via NEXT_PUBLIC_API_URL
+                  │
+                  ▼
+        https://trinetra-backend.onrender.com (Render, free)
+                  │
+          FastAPI Backend (spins down after 15 min idle)
+                  │
+                  ▼
+          Supabase PostgreSQL (always-on, free)
 ```
 
-## 2.1) Supabase integration (Step 7 recommended)
+**Cold start behavior**: After 15 minutes of inactivity, Render spins down the backend. The first request after idle takes ~30 seconds to wake up. Subsequent requests are fast. Frontend stays instant on Vercel.
 
-Supabase works well for this repo because it provides managed PostgreSQL and backups.
+---
 
-Use the pooled connection string from Supabase (Connection Pooler) and include SSL:
+## Prerequisites
 
-```text
-postgresql+psycopg2://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres?sslmode=require
-```
+| Account | Where | Cost |
+|---------|-------|------|
+| GitHub | github.com | Free |
+| Vercel | vercel.com (login with GitHub) | Free |
+| Render | render.com (login with GitHub) | Free |
+| Supabase | supabase.com | Free (already set up) |
 
-Setup checklist:
-- Create a Supabase project.
-- Go to `Project Settings -> Database -> Connection string -> URI`.
-- Prefer the **pooler** endpoint for production traffic.
-- Set `DATABASE_URL` in your deployment secrets (not in git).
-- Run `python healthcheck.py --skip-http` to verify DB connectivity.
-- Run `python release_readiness.py --skip-runner --skip-otp-webhook` before go-live.
+---
 
-Notes:
-- Current app auto-creates SQLAlchemy tables on startup.
-- Keep `sslmode=require` in Supabase connection URL.
-- Avoid exposing DB credentials in logs or screenshots.
-
-## 3) Local production-style run
+## Step 1: Push to GitHub
 
 ```bash
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-streamlit run app/main.py --server.headless=true --server.address=0.0.0.0 --server.port=8501
+git init
+git add .
+git commit -m "Initial commit"
+git remote add origin https://github.com/YOUR_USERNAME/trinetra-agro-ai.git
+git push -u origin main
 ```
 
-Windows one-command runner:
+---
 
-```powershell
-./start_production.ps1 -CheckOnly
-./start_production.ps1 -StartGateway
-```
+## Step 2: Deploy Frontend to Vercel (5 minutes)
 
-Or directly:
+1. Go to [vercel.com/new](https://vercel.com/new)
+2. Import your GitHub repo
+3. Set the **Root Directory** to `frontend-next`
+4. Set **Framework Preset** to `Next.js`
+5. Add this environment variable:
+
+| Variable | Value |
+|----------|-------|
+| `NEXT_PUBLIC_API_URL` | `https://trinetra-backend.onrender.com` |
+
+6. Click **Deploy**
+7. After deploy, Vercel gives you a URL like `https://trinetra-agro-xyz.vercel.app`
+
+---
+
+## Step 3: Deploy Backend to Render (10 minutes)
+
+1. Go to [render.com](https://render.com) → **New+** → **Web Service**
+2. Connect your GitHub repo
+3. Configure:
+
+| Setting | Value |
+|---------|-------|
+| **Name** | `trinetra-backend` |
+| **Root Directory** | (leave empty — repo root) |
+| **Runtime** | `Docker` |
+| **Build Command** | (leave empty — uses Dockerfile) |
+| **Start Command** | (leave empty — uses CMD from Dockerfile) |
+| **Instance Type** | **Free** |
+| **Health Check Path** | `/health` |
+
+4. Add these environment variables:
+
+| Variable | Value |
+|----------|-------|
+| `ENVIRONMENT` | `production` |
+| `DATABASE_URL` | Your Supabase PostgreSQL connection string |
+| `OPENROUTER_API_KEY` | `sk-or-v1-17ba...` |
+| `OPENROUTER_MODEL` | `google/gemma-4-26b-a4b-it:free` |
+| `SECRET_KEY` | Generate with `openssl rand -hex 32` |
+| `JWT_SECRET` | Same as SECRET_KEY |
+
+5. Click **Deploy Web Service**
+6. After deploy, Render gives you a URL like `https://trinetra-backend.onrender.com`
+
+---
+
+## Step 4: Connect Frontend to Backend
+
+After both are deployed:
+
+1. Go to Vercel dashboard → Your project → **Settings** → **Environment Variables**
+2. Update `NEXT_PUBLIC_API_URL` to your Render URL: `https://trinetra-backend.onrender.com`
+3. Go to **Deployments** → trigger a **Redeploy**
+
+---
+
+## Step 5: Custom Domain (Optional)
+
+**Vercel**: Settings → Domains → add your domain. Vercel handles SSL automatically.
+
+**Render**: Settings → Custom Domain → add domain. Render provides SSL via Let's Encrypt.
+
+---
+
+## Free Tier Limitations
+
+| Platform | Limit | Impact |
+|----------|-------|--------|
+| **Vercel** | 100 GB bandwidth/month | Fine for personal/demo use |
+| **Vercel** | 6000 build minutes/month | Plenty |
+| **Render** | Backend sleeps after **15 min idle** | First request after idle = ~30s cold start |
+| **Render** | 750 hours/month (≈24h/day, 31 days) | Runs continuously if traffic every <15 min |
+| **Render** | 100 GB outbound bandwidth | Fine |
+| **Supabase** | 500 MB database | Plenty |
+| **Supabase** | 50,000 monthly active users | More than enough |
+
+---
+
+## Handling the Cold Start
+
+**Option A: Uptime monitor (free)**
+
+Use [uptimerobot.com](https://uptimerobot.com) (free tier) to ping Render's `/health` endpoint every 14 minutes. This keeps the backend warm indefinitely. UptimeRobot free tier monitors 5 URLs at 5-minute intervals.
+
+**Option B: Accept it**
+
+Add a loading state in the frontend. On first load, show "Waking up the AI engine..." while the backend boots. This takes ~30 seconds once, then fast for the next 15 minutes.
+
+**Option C: Render Blaze ($7/month)**
+
+Upgrade Render to the Starter plan ($7/month) for:
+- Zero cold starts
+- Always-on
+- 512MB RAM
+- Dedicated CPU
+- Priority support
+
+---
+
+## Updating After Deployment
 
 ```bash
-python production_runner.py --check-only
-python production_runner.py --start-gateway
+git add .
+git commit -m "fix: update something"
+git push origin main
 ```
 
-Runtime logs:
-- `logs/app-production.log`
-- `logs/otp-gateway.log`
+**Vercel** auto-deploys on push to main branch (detects changes in `frontend-next/`).
 
-Runner observability:
-- Metrics endpoint: `http://127.0.0.1:9090/metrics`
-- Health endpoint: `http://127.0.0.1:9090/healthz`
-- Log rotation and retention controlled by:
-  - `RUNNER_LOG_MAX_BYTES`
-  - `RUNNER_LOG_BACKUP_COUNT`
-  - `RUNNER_LOG_RETENTION_DAYS`
+**Render** auto-deploys on push to main branch (detects Dockerfile changes).
 
-Prediction safety:
-- `SAFETY_CONFIDENCE_THRESHOLD=0.70`
-- When module confidence is below threshold, app shows a caution banner and advises verification with local mandi data / KVK / agri officer.
+---
 
-## 3.1) Release readiness gate (recommended before go-live)
+## Verifying the Deployment
 
-Run one command to validate env, DB, compile checks, production check-only,
-runner health/metrics, and OTP webhook (when OTP auth is enabled):
+| Check | URL | Expected |
+|-------|-----|----------|
+| Frontend | `https://trinetra-agro-xyz.vercel.app` | Login page loads |
+| Backend health | `https://trinetra-backend.onrender.com/health` | `{"status":"healthy"}` |
+| Backend docs | `https://trinetra-backend.onrender.com/docs` | Swagger UI |
+| Login | Frontend → login with `demo@farm.com` | Redirects to dashboard |
+| AI Advisor | Frontend → fill form → submit | Returns recommendations |
 
-```bash
-python release_readiness.py
+---
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| Frontend loads but API calls fail | `NEXT_PUBLIC_API_URL` wrong | Check env var in Vercel dashboard |
+| "Network Error" on login | Backend is sleeping | Wait 30s and retry, or set up uptime monitor |
+| Backend deploy fails | Docker build timeout on free tier | Free tier has 5 min build limit; if exceeded, upgrade or remove heavy deps |
+| Auth not working | `SECRET_KEY` mismatch | Ensure same key on Render and in deployed config |
+| CORS errors | Backend `allowed_origins` doesn't include Vercel URL | Update `allowed_origins` in `backend/core/config.py` or set `ALLOWED_ORIGINS` env var |
+
+---
+
+## File: `frontend-next/vercel.json`
+
+Create this file in the repo root for Vercel configuration:
+
+```json
+{
+  "buildCommand": "cd frontend-next && npm run build",
+  "outputDirectory": "frontend-next/.next",
+  "installCommand": "cd frontend-next && npm install",
+  "framework": "nextjs"
+}
 ```
 
-Optional flags:
-
-```bash
-python release_readiness.py --skip-runner
-python release_readiness.py --skip-otp-webhook
-```
-
-## 3.2) Testing pipeline commands
-
-Run unit + integration tests:
-
-```bash
-python -m pytest
-```
-
-Run smoke verification:
-
-```bash
-python quick_start.py
-```
-
-Recommended local verification order:
-
-```bash
-python -m pytest
-python -m compileall app quick_start.py healthcheck.py otp_gateway.py production_runner.py
-python release_readiness.py --skip-runner --skip-otp-webhook
-```
-
-## 4) Docker deployment
-
-Build image:
-
-```bash
-docker build -t trinetra-agro-ai .
-```
-
-Run container:
-
-```bash
-docker run --rm -p 8501:8501 \
-  -e PORT=8501 \
-  -e DATABASE_URL="sqlite:///data/trinetra.db" \
-  -e OPENROUTER_API_KEY="your_key" \
-  trinetra-agro-ai
-```
-
-For production, replace SQLite with PostgreSQL in `DATABASE_URL`.
-
-## 4.1) Docker Compose (app + PostgreSQL)
-
-```bash
-docker compose up --build
-```
-
-This uses `docker-compose.yml` and starts:
-- `app` on `http://localhost:8501`
-- `db` as PostgreSQL with persistent volume
-
-To stop:
-
-```bash
-docker compose down
-```
-
-To stop and remove volume data:
-
-```bash
-docker compose down -v
-```
-
-## 5) Data and persistence notes
-- On startup, SQLAlchemy creates tables automatically.
-- If you use SQLite in a container, mount a volume for persistence.
-- For real users, use PostgreSQL to avoid SQLite concurrency limits.
-
-## 6) Operational checks before go-live
-- Start app and verify all sidebar modules load.
-- Verify chat in fallback mode (without OpenRouter key) and AI mode (with key).
-- Upload at least one image and run disease detection.
-- Run one market/risk/yield/profit prediction per crop type.
-- Confirm DB inserts by checking table row counts.
-
-## 6.1) Automated health checks
-
-Check DB and Streamlit health endpoint:
-
-```bash
-python healthcheck.py
-```
-
-Check DB only:
-
-```bash
-python healthcheck.py --skip-http
-```
-
-Check HTTP only:
-
-```bash
-python healthcheck.py --skip-db --health-url http://127.0.0.1:8501/_stcore/health
-```
-
-## 7) Safety and reliability recommendations
-- Add uptime monitoring and alerting.
-- Rotate API keys and keep them in secret managers.
-- Back up PostgreSQL daily.
-- Keep `REQUIRE_LOGIN=true` for public access unless you add stronger auth.
+> **Note**: In the Vercel dashboard, set **Root Directory** to `frontend-next` instead of using the above config. The vercel.json above assumes repo-root setup. The simpler approach is setting Root Directory in the UI.

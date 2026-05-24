@@ -62,6 +62,7 @@ class Settings(BaseSettings):
     # External APIs
     weather_api_key: str = ""
     market_data_api_key: str = ""
+    data_gov_api_key: str = ""
 
     # CORS
     allowed_origins: list = ["http://localhost:8501", "http://localhost:3000"]
@@ -93,6 +94,8 @@ class Settings(BaseSettings):
             self.supabase_url = _env_overrides["supabase_url"]
         if _env_overrides.get("supabase_project_ref"):
             self.supabase_project_ref = _env_overrides["supabase_project_ref"]
+        if _env_overrides.get("data_gov_api_key"):
+            self.data_gov_api_key = _env_overrides["data_gov_api_key"]
 
 
 @lru_cache(maxsize=1)

@@ -12,12 +12,14 @@ import {
   Legend,
 } from "recharts";
 import { apiClient } from "@/lib/api";
+import { useLang } from "@/lib/language";
 import type { MarketResponse } from "@/lib/types";
 import { FormSkeleton } from "@/components/skeleton";
 
 const CROPS = ["rice", "wheat", "cotton", "tomato", "potato", "onion", "maize", "sugarcane", "soybean", "groundnut"];
 
 export default function MarketPage() {
+  const { T } = useLang();
   const [crop, setCrop] = useState("Rice");
   const [days, setDays] = useState(14);
   const [loading, setLoading] = useState(false);
@@ -56,8 +58,8 @@ export default function MarketPage() {
   if (loading && !result) {
     return (
       <div className="p-6 max-w-4xl">
-        <h2 className="text-2xl font-bold text-gray-800">📈 Market Price Intelligence</h2>
-        <p className="text-gray-500 mt-1">Forecast future crop prices and get AI-driven buy/sell recommendations.</p>
+        <h2 className="text-2xl font-bold text-gray-800">📈 {T("marketTitle")}</h2>
+        <p className="text-gray-500 mt-1">{T("marketSubtitle")}</p>
         <div className="mt-6"><FormSkeleton /></div>
       </div>
     );
@@ -65,13 +67,13 @@ export default function MarketPage() {
 
   return (
     <div className="p-6 max-w-4xl">
-      <h2 className="text-2xl font-bold text-gray-800">📈 Market Price Intelligence</h2>
-      <p className="text-gray-500 mt-1">Forecast future crop prices and get AI-driven buy/sell recommendations.</p>
+      <h2 className="text-2xl font-bold text-gray-800">📈 {T("marketTitle")}</h2>
+      <p className="text-gray-500 mt-1">{T("marketSubtitle")}</p>
 
-      <form onSubmit={handleSubmit} className="mt-6 bg-white rounded-xl border border-green-100 p-6 shadow-sm space-y-5">
+      <form onSubmit={handleSubmit} className="mt-6 bg-white rounded-xl border border-green-100 p-6 shadow-sm space-y-5 liquid-glass-card">
         <div className="grid md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Select Crop</label>
+            <label className="block text-sm font-medium text-gray-600 mb-1">{T("selectCrop")}</label>
             <select
               value={crop}
               onChange={(e) => setCrop(e.target.value)}
@@ -81,7 +83,7 @@ export default function MarketPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Forecast Horizon (Days)</label>
+            <label className="block text-sm font-medium text-gray-600 mb-1">{T("forecastDays")}</label>
             <input
               type="range"
               min={7}
@@ -98,7 +100,7 @@ export default function MarketPage() {
           disabled={loading}
           className="px-6 py-2.5 bg-gradient-to-r from-green-600 to-green-500 text-white font-semibold rounded-lg text-sm hover:from-green-700 hover:to-green-600 disabled:opacity-50 transition"
         >
-          {loading ? "Analyzing market trends..." : "📊  Predict Prices"}
+          {loading ? "..." : `📊  ${T("getPrediction")}`}
         </button>
       </form>
 
@@ -127,11 +129,11 @@ export default function MarketPage() {
 
           {/* Metrics */}
           <div className="grid grid-cols-3 gap-4">
-            <div className="bg-white rounded-xl border border-green-100 p-4 shadow-sm text-center">
+            <div className="bg-white rounded-xl border border-green-100 p-4 shadow-sm text-center liquid-glass-card">
               <p className="text-xs text-gray-500">Current Price</p>
               <p className="text-lg font-bold text-gray-800 mt-1">₹{result.current_price.toLocaleString()}/q</p>
             </div>
-            <div className="bg-white rounded-xl border border-green-100 p-4 shadow-sm text-center">
+            <div className="bg-white rounded-xl border border-green-100 p-4 shadow-sm text-center liquid-glass-card">
               <p className="text-xs text-gray-500">Avg Expected ({days}d)</p>
               {(() => {
                 const preds = result.predictions.prices;
@@ -147,14 +149,14 @@ export default function MarketPage() {
                 );
               })()}
             </div>
-            <div className="bg-white rounded-xl border border-green-100 p-4 shadow-sm text-center">
+            <div className="bg-white rounded-xl border border-green-100 p-4 shadow-sm text-center liquid-glass-card">
               <p className="text-xs text-gray-500">Overall Trend</p>
               <p className="text-lg font-bold text-gray-800 mt-1 capitalize">{result.trend}</p>
             </div>
           </div>
 
           {/* Chart */}
-          <div className="bg-white rounded-xl border border-green-100 p-4 shadow-sm">
+          <div className="bg-white rounded-xl border border-green-100 p-4 shadow-sm liquid-glass-card">
             <h3 className="text-sm font-semibold text-gray-700 mb-3">📉 Price Forecast — {crop}</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart
@@ -177,7 +179,7 @@ export default function MarketPage() {
 
           {/* Market Tips */}
           {result.market_tips && result.market_tips.length > 0 && (
-            <div className="bg-white rounded-xl border border-green-100 p-4 shadow-sm">
+            <div className="bg-white rounded-xl border border-green-100 p-4 shadow-sm liquid-glass-card">
               <h3 className="text-sm font-semibold text-gray-700 mb-2">💡 Market Tips</h3>
               <ul className="space-y-1 text-sm text-gray-600 list-disc list-inside">
                 {result.market_tips.map((tip, i) => (
