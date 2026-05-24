@@ -20,6 +20,13 @@ An AI-powered agricultural intelligence platform for Indian farmers with multili
 
 ---
 
+## 🖼️ Preview
+
+### Login Page (Liquid Glass Effect)
+![Login Page](screenshots/login.png)
+
+---
+
 ## 🏗️ Architecture
 
 ```
