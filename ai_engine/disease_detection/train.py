@@ -38,7 +38,10 @@ def build_model(num_classes: int) -> tf.keras.Model:
     base.trainable = False
 
     inputs = keras.Input(shape=(*IMG_SIZE, 3))
-    x = tf.keras.applications.mobilenet_v2.preprocess_input(inputs)
+    x = layers.RandomFlip("horizontal_and_vertical")(inputs)
+    x = layers.RandomRotation(0.15)(x)
+    x = layers.RandomZoom(0.1)(x)
+    x = tf.keras.applications.mobilenet_v2.preprocess_input(x)
     x = base(x, training=False)
     x = layers.GlobalAveragePooling2D()(x)
     x = layers.Dropout(0.3)(x)
@@ -83,20 +86,8 @@ def train():
         print(f"Download PlantVillage from Kaggle and extract to: {LOCAL_DATA_DIR}")
         return
 
-    # ── Data augmentation ───────────────────────────────────────────────────
-    augmentation = keras.Sequential([
-        layers.RandomFlip("horizontal_and_vertical"),
-        layers.RandomRotation(0.15),
-        layers.RandomZoom(0.1),
-        layers.RandomBrightness(0.15),
-        layers.RandomContrast(0.1),
-    ])
-
     AUTOTUNE = tf.data.AUTOTUNE
-    train_ds = train_ds.map(
-        lambda x, y: (augmentation(x, training=True), y),
-        num_parallel_calls=AUTOTUNE,
-    ).prefetch(AUTOTUNE)
+    train_ds = train_ds.prefetch(AUTOTUNE)
     val_ds = val_ds.prefetch(AUTOTUNE)
 
     # ── Phase 1: Feature extraction ─────────────────────────────────────────
