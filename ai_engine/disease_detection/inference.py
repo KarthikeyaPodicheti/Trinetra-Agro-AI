@@ -8,7 +8,9 @@ import numpy as np
 from PIL import Image
 
 MODEL_DIR = Path(__file__).parent / "models"
-DEFAULT_MODEL_PATH = MODEL_DIR / "mobilenetv2_plantvillage.h5"
+DEFAULT_MODEL_PATH = MODEL_DIR / "mobilenetv2_plantvillage.keras"
+DEFAULT_WEIGHTS_PATH = MODEL_DIR / "mobilenetv2_plantvillage.weights.h5"
+LEGACY_MODEL_PATH = MODEL_DIR / "mobilenetv2_plantvillage.h5"
 DEFAULT_CLASS_PATH = MODEL_DIR / "class_names.txt"
 
 # Fallback disease data when no trained model is available
@@ -50,18 +52,43 @@ def load_disease_class_names() -> List[str]:
 class DiseaseDetector:
     def __init__(self, model_path: Optional[str] = None):
         self.model = None
-        self.class_names: List[str] = []
+        self.class_names = load_disease_class_names()
 
-        model_file = model_path or str(DEFAULT_MODEL_PATH)
-        if Path(model_file).exists():
-            try:
-                import tensorflow as tf
-                self.model = tf.keras.models.load_model(model_file)
-                self.class_names = load_disease_class_names()
-                print(f"Loaded model from {model_file}")
-            except Exception as e:
-                print(f"Failed to load model: {e}")
-                self.model = None
+        try:
+            import tensorflow as tf
+            num_classes = len(self.class_names) or 38
+
+            # Try .keras format first (modern, portable)
+            if DEFAULT_MODEL_PATH.exists():
+                self.model = tf.keras.models.load_model(str(DEFAULT_MODEL_PATH), compile=False)
+                print(f"Loaded model from {DEFAULT_MODEL_PATH}")
+            # Fall back to weights-only file
+            elif DEFAULT_WEIGHTS_PATH.exists():
+                self.model = self._build_arch(num_classes)
+                self.model.load_weights(str(DEFAULT_WEIGHTS_PATH))
+                print(f"Loaded weights from {DEFAULT_WEIGHTS_PATH}")
+            else:
+                print("No model file found — using fallback predictions")
+        except Exception as e:
+            print(f"Failed to load model: {e}")
+            self.model = None
+
+    @staticmethod
+    def _build_arch(num_classes: int):
+        """Rebuild architecture matching train.py — NO preprocess_input layer."""
+        import tensorflow as tf
+        from tensorflow.keras import layers, Model, Input
+        base = tf.keras.applications.MobileNetV2(
+            input_shape=(224, 224, 3), include_top=False, weights=None
+        )
+        inputs = Input(shape=(224, 224, 3))
+        x = base(inputs, training=False)
+        x = layers.GlobalAveragePooling2D()(x)
+        x = layers.Dropout(0.3)(x)
+        x = layers.Dense(256, activation="relu")(x)
+        x = layers.Dropout(0.3)(x)
+        outputs = layers.Dense(num_classes, activation="softmax")(x)
+        return Model(inputs, outputs)
 
     @property
     def is_loaded(self) -> bool:

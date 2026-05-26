@@ -1,10 +1,4 @@
-"""Disease Detection training — MobileNetV2 with augmentation + fine-tuning.
-
-Usage:
-  1. Download PlantVillage from https://www.kaggle.com/datasets/vipoooool/new-plant-diseases-dataset
-  2. Extract into: datasets/plantvillage/  (subfolders per class)
-  3. Run: python -m ai_engine.disease_detection.train
-"""
+"""Disease Detection training — MobileNetV2 with augmentation + fine-tuning."""
 
 import os
 from pathlib import Path
@@ -35,6 +29,11 @@ def augment(image, label):
     return image, label
 
 
+def preprocess(image, label):
+    """MobileNetV2 preprocessing: scale [0,255] -> [-1,1]"""
+    return (image / 127.5) - 1.0, label
+
+
 def build_model(num_classes: int) -> tf.keras.Model:
     base = tf.keras.applications.MobileNetV2(
         input_shape=(*IMG_SIZE, 3),
@@ -44,8 +43,7 @@ def build_model(num_classes: int) -> tf.keras.Model:
     base.trainable = False
 
     inputs = keras.Input(shape=(*IMG_SIZE, 3))
-    x = tf.keras.applications.mobilenet_v2.preprocess_input(inputs)
-    x = base(x, training=False)
+    x = base(inputs, training=False)
     x = layers.GlobalAveragePooling2D()(x)
     x = layers.Dropout(0.3)(x)
     x = layers.Dense(256, activation="relu")(x)
@@ -66,31 +64,23 @@ def train():
     print(f"Loading dataset from {LOCAL_DATA_DIR}...")
     train_ds = tf.keras.utils.image_dataset_from_directory(
         str(LOCAL_DATA_DIR),
-        validation_split=0.2,
-        subset="training",
-        seed=42,
-        image_size=IMG_SIZE,
-        batch_size=BATCH_SIZE,
-        label_mode="int",
+        validation_split=0.2, subset="training", seed=42,
+        image_size=IMG_SIZE, batch_size=BATCH_SIZE, label_mode="int",
     )
     val_ds = tf.keras.utils.image_dataset_from_directory(
         str(LOCAL_DATA_DIR),
-        validation_split=0.2,
-        subset="validation",
-        seed=42,
-        image_size=IMG_SIZE,
-        batch_size=BATCH_SIZE,
-        label_mode="int",
+        validation_split=0.2, subset="validation", seed=42,
+        image_size=IMG_SIZE, batch_size=BATCH_SIZE, label_mode="int",
     )
     class_names = train_ds.class_names
     num_classes = len(class_names)
     print(f"Classes ({num_classes}): {class_names}")
 
     AUTOTUNE = tf.data.AUTOTUNE
-    train_ds = train_ds.map(augment, num_parallel_calls=AUTOTUNE).prefetch(AUTOTUNE)
-    val_ds = val_ds.prefetch(AUTOTUNE)
+    train_ds = train_ds.map(augment, num_parallel_calls=AUTOTUNE).map(preprocess, num_parallel_calls=AUTOTUNE).prefetch(AUTOTUNE)
+    val_ds = val_ds.map(preprocess, num_parallel_calls=AUTOTUNE).prefetch(AUTOTUNE)
 
-    # ── Phase 1: Feature extraction ──────────────────────────────────────────
+    # ── Phase 1 ──────────────────────────────────────────────────────────────
     print("\n" + "=" * 60)
     print("Phase 1: Feature extraction (frozen MobileNetV2)")
     print("=" * 60)
@@ -107,7 +97,7 @@ def train():
     val_acc = max(history.history["val_accuracy"])
     print(f"\nBest validation accuracy after feature extraction: {val_acc:.2%}")
 
-    # ── Phase 2: Fine-tuning ─────────────────────────────────────────────────
+    # ── Phase 2 ──────────────────────────────────────────────────────────────
     print("\n" + "=" * 60)
     print("Phase 2: Fine-tuning (unfreeze last 30 layers)")
     print("=" * 60)
@@ -128,9 +118,15 @@ def train():
     print(f"\nBest validation accuracy after fine-tuning: {val_acc_ft:.2%}")
 
     # ── Save ─────────────────────────────────────────────────────────────────
-    model_path = MODEL_DIR / "mobilenetv2_plantvillage.h5"
-    model.save(str(model_path))
-    print(f"\nModel saved: {model_path} ({os.path.getsize(model_path) / 1e6:.1f} MB)")
+    # Save in modern .keras format (portable across TF versions)
+    keras_path = MODEL_DIR / "mobilenetv2_plantvillage.keras"
+    model.save(str(keras_path))
+    print(f"\nModel saved (.keras): {keras_path} ({os.path.getsize(keras_path) / 1e6:.1f} MB)")
+
+    # Also save just weights as backup
+    weights_path = MODEL_DIR / "mobilenetv2_plantvillage.weights.h5"
+    model.save_weights(str(weights_path))
+    print(f"Weights saved: {weights_path}")
 
     class_path = MODEL_DIR / "class_names.txt"
     class_path.write_text("\n".join(class_names))
