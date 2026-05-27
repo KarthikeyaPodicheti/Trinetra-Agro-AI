@@ -189,6 +189,8 @@ Open http://localhost:3000
 | POST | `/ai/disease` | Disease detection (multipart image) |
 | POST | `/chat/send` | Send chat message |
 | POST | `/chat/clear` | Clear chat session |
+| GET | `/profile` | Get farmer profile |
+| POST | `/profile` | Save/update farmer profile |
 | POST | `/feedback` | Submit feedback |
 | GET | `/health` | Health check |
 
@@ -233,10 +235,125 @@ The language context (`src/lib/language.tsx`) provides translations for all UI s
 ## 🧠 AI/ML
 
 ### Disease Detection
-- **Model**: MobileNetV2 (transfer learning)
+- **Model**: MobileNetV2 (transfer learning + fine-tuning)
 - **Dataset**: PlantVillage (38 classes, 70K+ images)
-- **Training**: Google Colab with GPU
+- **Training**: Kaggle GPU (Tesla T4 x2)
+- **Final Accuracy**: 98.76% validation accuracy
 - **Inference**: Upload leaf image → disease name, confidence, severity, treatment
+
+---
+
+### 🔬 Fine-Tuning Guide (Step by Step)
+
+We fine-tuned a **MobileNetV2** model on the **PlantVillage** dataset to classify 38 plant diseases from leaf images. Here's the complete process explained for beginners:
+
+#### What is Fine-Tuning?
+
+Instead of training a model from scratch (which needs millions of images and days of compute), we take a model that's already been trained on ImageNet (1.4M images) and **adapt** it to our specific task (plant disease classification). This is called **transfer learning + fine-tuning**.
+
+#### Training Strategy (2 Phases)
+
+**Phase 1 — Feature Extraction (15 epochs)**
+- Freeze the entire MobileNetV2 base (don't change its weights)
+- Only train the new classification head (Dense layers we added on top)
+- Uses a higher learning rate (0.001)
+- Result: ~96.5% accuracy
+
+**Phase 2 — Fine-Tuning (10 epochs)**
+- Unfreeze the last 30 layers of MobileNetV2
+- Train them with a very small learning rate (0.00001) so we don't destroy what the model already learned
+- This lets the model adapt its feature extraction to plant leaves specifically
+- Result: ~98.7% accuracy
+
+#### Data Augmentation
+
+During training, we randomly apply transformations to images:
+- Horizontal/vertical flips
+- Brightness changes (±15%)
+- Contrast changes (±10%)
+
+This prevents overfitting and makes the model robust to different lighting/angles.
+
+#### Preprocessing
+
+MobileNetV2 expects pixel values in the range [-1, 1]. We apply:
+```python
+image = (image / 127.5) - 1.0
+```
+This is done in the data pipeline (not inside the model) for cross-version portability.
+
+#### How to Retrain on Kaggle
+
+1. **Create a Kaggle Notebook** → [kaggle.com](https://kaggle.com) → New Notebook
+2. **Add Dataset**: Right sidebar → + Add Data → search `new-plant-diseases-dataset` by vipoooool → Add
+3. **Enable GPU**: Settings → Accelerator → GPU T4 x2
+4. **Enable Internet**: Settings → Internet → ON
+5. **Run this single cell**:
+
+```python
+import os, sys, shutil
+
+os.system("git clone https://github.com/KarthikeyaPodicheti/Trinetra-Agro-AI.git")
+os.chdir("/kaggle/working/Trinetra-Agro-AI")
+sys.path.insert(0, "/kaggle/working/Trinetra-Agro-AI")
+
+src = None
+for root, dirs, files in os.walk("/kaggle/input"):
+    if os.path.basename(root) == "train":
+        src = root
+        break
+print("Found:", src)
+os.makedirs("datasets", exist_ok=True)
+os.symlink(src, "datasets/plantvillage")
+print("Classes:", len(os.listdir("datasets/plantvillage")))
+
+import runpy
+runpy.run_module("ai_engine.disease_detection.train", run_name="__main__")
+
+shutil.copy("ai_engine/disease_detection/models/mobilenetv2_plantvillage.keras", "/kaggle/working/mobilenetv2_plantvillage.keras")
+shutil.copy("ai_engine/disease_detection/models/class_names.txt", "/kaggle/working/class_names.txt")
+print("FILES SAVED TO OUTPUT")
+```
+
+6. **Wait ~45 minutes** for training to complete
+7. **Download** from the Output panel (right sidebar): `mobilenetv2_plantvillage.keras` and `class_names.txt`
+8. **Place files** in your local repo at `ai_engine/disease_detection/models/`
+
+#### Model Architecture
+
+```
+Input (224x224x3)
+    ↓
+MobileNetV2 (frozen/partially unfrozen) → Feature maps (7x7x1280)
+    ↓
+GlobalAveragePooling2D → 1280-dim vector
+    ↓
+Dropout (0.3)
+    ↓
+Dense (256, ReLU)
+    ↓
+Dropout (0.3)
+    ↓
+Dense (38, Softmax) → Probability for each disease class
+```
+
+#### Why .keras Format?
+
+We save in the modern `.keras` format instead of legacy `.h5` because:
+- `.h5` embeds preprocessing as graph operations (`TrueDivide`, `Subtract`) that break across TensorFlow versions
+- `.keras` is version-independent and portable
+- Loads cleanly on any TF 2.16+ installation
+
+#### Key Files
+
+| File | Purpose |
+|------|---------|
+| `ai_engine/disease_detection/train.py` | Training script (run on Kaggle) |
+| `ai_engine/disease_detection/inference.py` | Inference + Grad-CAM (runs on backend) |
+| `ai_engine/disease_detection/models/mobilenetv2_plantvillage.keras` | Trained model (25.9 MB) |
+| `ai_engine/disease_detection/models/class_names.txt` | 38 disease class labels |
+
+---
 
 ### Market Forecasting
 - **Data Source**: data.gov.in real mandi prices
