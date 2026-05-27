@@ -22,6 +22,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     { label: `🔬  ${T("diseaseScanner")}`, path: "/disease-scanner" },
     { label: `📈  ${T("marketIntelligence")}`, path: "/market" },
     { label: `💬  ${T("aiChatbot")}`, path: "/chatbot" },
+    { label: `🧑‍🌾  Farm Profile`, path: "/profile" },
     { label: `📝  ${T("feedback")}`, path: "/feedback" },
   ];
 

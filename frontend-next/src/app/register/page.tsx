@@ -20,7 +20,7 @@ export default function RegisterPage() {
     setLoading(true);
     const ok = await register(email, password, fullName, phone);
     setLoading(false);
-    if (ok) router.push("/");
+    if (ok) window.location.href = "/";
     else setError("Registration failed — email may already exist");
   }
 

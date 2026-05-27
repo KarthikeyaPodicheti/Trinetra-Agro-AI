@@ -5,13 +5,12 @@ import { apiClient } from "@/lib/api";
 import { useLang } from "@/lib/language";
 import type { DiseaseResponse } from "@/lib/types";
 
-const CROPS = ["Rice", "Tomato", "Cotton", "Potato", "Wheat"];
+
 
 export default function DiseaseScannerPage() {
   const { T } = useLang();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [cropType, setCropType] = useState(CROPS[0]);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<DiseaseResponse | null>(null);
   const [error, setError] = useState("");
@@ -27,6 +26,15 @@ export default function DiseaseScannerPage() {
     }
   }
 
+  function handleRemoveImage() {
+    if (preview) URL.revokeObjectURL(preview);
+    setFile(null);
+    setPreview(null);
+    setResult(null);
+    setError("");
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
   async function handleAnalyze() {
     if (!file) return;
     setLoading(true);
@@ -35,7 +43,7 @@ export default function DiseaseScannerPage() {
     try {
       const formData = new FormData();
       formData.append("image", file);
-      const r = await apiClient.upload<DiseaseResponse>(`/ai/disease?crop_type=${encodeURIComponent(cropType.toLowerCase())}`, formData);
+      const r = await apiClient.upload<DiseaseResponse>(`/ai/disease`, formData);
       if (r.success) {
         setResult(r);
       } else {
@@ -79,19 +87,16 @@ export default function DiseaseScannerPage() {
             />
           </div>
           {file && (
-            <p className="text-xs text-gray-500 truncate">{file.name} ({(file.size / 1024).toFixed(1)} KB)</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs text-gray-500 truncate flex-1">{file.name} ({(file.size / 1024).toFixed(1)} KB)</p>
+              <button
+                onClick={handleRemoveImage}
+                className="text-xs px-3 py-1 rounded-md bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition shrink-0"
+              >
+                ✕ Remove
+              </button>
+            </div>
           )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">{T("cropType")}</label>
-            <select
-              value={cropType}
-              onChange={(e) => setCropType(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-            >
-              {CROPS.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
 
           <button
             onClick={handleAnalyze}

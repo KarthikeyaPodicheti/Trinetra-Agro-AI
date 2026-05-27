@@ -19,10 +19,15 @@ async def chat_send(req: ChatRequest, db: AsyncSession = Depends(get_db),
     chatbot = get_chatbot()
     context = None
     if user and user.farmer:
+        f = user.farmer
         context = {
-            "soil_type": user.farmer.soil_type,
-            "land_acres": user.farmer.land_size_acres,
-            "location": user.farmer.location,
+            "location": f.location,
+            "land_acres": f.land_size_acres,
+            "soil_type": f.soil_type,
+            "crops": f.crops,
+            "irrigation": f.irrigation_type,
+            "budget_inr": f.budget_inr,
+            "experience_years": f.experience_years,
         }
     reply = await chatbot.chat(req.message, req.session_id, context, req.language)
     return ChatResponse(reply=reply, session_id=req.session_id)
