@@ -27,7 +27,10 @@ export default function LoginPage() {
     const ok = await login(email, password);
     setLoading(false);
     if (ok) {
-      await new Promise(r => setTimeout(r, 500));
+      // Force-clear any stale non-Secure cookies before setting new ones
+      document.cookie = "access_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=" + window.location.hostname;
+      document.cookie = "refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=" + window.location.hostname;
+      await new Promise(r => setTimeout(r, 200));
       window.location.href = "/";
     } else setError("Invalid email or password");
   }
