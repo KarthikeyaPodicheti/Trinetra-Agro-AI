@@ -81,7 +81,7 @@ export default function LoginPage() {
           <div className="login-card__shine"></div>
           <div className="login-card__content">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-green-600 to-emerald-400 flex items-center justify-center text-3xl mx-auto mb-4 shadow-lg shadow-green-500/30">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-green-600 to-emerald-400 flex items-center justify-center text-3xl mx-auto mb-4 shadow-lg shadow-green-500/30" style={{ fontSize: "2rem", lineHeight: 1 }}>
                 🔱
               </div>
               <h1 className="login-title">Trinetra Agro AI</h1>
