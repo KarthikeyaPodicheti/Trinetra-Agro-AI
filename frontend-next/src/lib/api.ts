@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://139.59.83.96";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://shirts-flexible-michelle-classes.trycloudflare.com";
 
 function getCookie(name: string): string | undefined {
   if (typeof document === "undefined") return undefined;
