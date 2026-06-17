@@ -92,8 +92,8 @@ export default function RegisterPage() {
           justify-content: center;
           padding: 1rem;
           background: url("/bg.jpg") center bottom;
-          background-size: cover;
-          animation: regBgMove 120s ease-in-out infinite alternate;
+          background-size: 120% 200%;
+          animation: regBgMove 30s ease-in-out infinite alternate;
         }
         @keyframes regBgMove {
           from { background-position: center bottom; }
