@@ -10,6 +10,32 @@ interface Message {
   content: string;
 }
 
+/** Renders bullet points and **bold** from LLM markdown as JSX — no extra deps. */
+function BotMessage({ content }: { content: string }) {
+  const lines = content
+    .split("\n")
+    .map((l) => l.replace(/^#{1,3}\s+/, "").trim()) // strip ### headers
+    .filter((l) => l.length > 0);
+  return (
+    <ul className="space-y-1 list-none p-0 m-0">
+      {lines.map((line, i) => {
+        const isBullet = /^[\-•\*]\s+/.test(line);
+        const text = line.replace(/^[\-•\*]\s+/, "").trim();
+        const parts = text.split(/\*\*(.*?)\*\*/g);
+        const rendered = parts.map((p, j) =>
+          j % 2 === 1 ? <strong key={j}>{p}</strong> : p
+        );
+        return (
+          <li key={i} className={isBullet ? "flex gap-2" : ""}>
+            {isBullet && <span className="text-green-500 mt-0.5">•</span>}
+            <span>{rendered}</span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export default function ChatbotPage() {
   const { lang, T } = useLang();
   const [messages, setMessages] = useState<Message[]>([
@@ -91,10 +117,10 @@ export default function ChatbotPage() {
               className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${
                 msg.role === "user"
                   ? "bg-green-600 text-white rounded-br-md"
-                  : "bg-white border border-green-100 shadow-sm rounded-bl-md"
+                  : "bg-white border border-green-100 shadow-sm rounded-bl-md text-gray-800"
               }`}
             >
-              {msg.content}
+              {msg.role === "user" ? msg.content : <BotMessage content={msg.content} />}
             </div>
           </div>
         ))}

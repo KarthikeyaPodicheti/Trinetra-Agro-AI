@@ -1,5 +1,6 @@
 "use client";
 
+import { FloatingChat } from "@/components/FloatingChat";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
@@ -142,6 +143,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </div>
+      {/* Floating chatbot widget — hidden on /chatbot page */}
+      {pathname !== "/chatbot" && !isAuthPage && <FloatingChat />}
     </div>
   );
 }

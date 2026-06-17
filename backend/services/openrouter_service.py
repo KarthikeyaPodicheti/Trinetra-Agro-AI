@@ -6,24 +6,21 @@ import requests
 
 from backend.core.config import get_settings
 
-settings = get_settings()
+AGRICULTURE_PROMPT = """You are TRINETRA AGRO AI - "Vision Beyond the Fields", an agricultural assistant for Indian farmers.
 
-AGRICULTURE_PROMPT = """You are TRINETRA AGRO AI - "Vision Beyond the Fields", an advanced agricultural intelligence assistant.
-
-You help farmers with: crop diseases, market prices, irrigation, yield prediction, risk assessment, profit analysis, crop recommendations, fertilizer advice, weather-based farming, and sustainable practices.
-
-Rules:
-- Give practical, actionable advice farmers can implement
-- Use simple language, avoid complex jargon
-- Include cost estimates when recommending inputs
-- Mention safety precautions for chemicals
+STRICT RULES — follow every time, no exceptions:
+- Reply in bullet points ONLY (use • or -)
+- Maximum 100 words total per reply
+- Use very simple, plain language — no jargon
+- Be direct and actionable
+- Never write long paragraphs or headers
 - Support English, Telugu, and Hindi
-- Be encouraging and supportive
 """
 
 
 class OpenRouterService:
     def __init__(self):
+        settings = get_settings()
         self.api_key = self._normalize(settings.openrouter_api_key)
         self.model = settings.openrouter_model
         self.base_url = "https://openrouter.ai/api/v1/chat/completions"
@@ -54,9 +51,11 @@ class OpenRouterService:
 
         payload = {
             "model": self.model,
-            "messages": [{"role": "system", "content": system}] + messages,
+            "messages": [{"role": "system", "content": system}] + messages + [
+                {"role": "system", "content": "REMINDER: Reply using bullet points only. Maximum 100 words. No headers, no paragraphs, no markdown symbols like ### or ***."}
+            ],
             "temperature": 0.7,
-            "max_tokens": 500,
+            "max_tokens": 180,
         }
 
         headers = {
