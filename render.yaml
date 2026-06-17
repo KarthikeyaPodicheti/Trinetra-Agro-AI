@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: trinetra-backend
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        value: google/gemma-4-26b-a4b-it:free
+      - key: SECRET_KEY
+        sync: false
+      - key: DATA_GOV_API_KEY
+        sync: false
+    autoDeploy: true
