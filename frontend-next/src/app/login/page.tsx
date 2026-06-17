@@ -26,8 +26,10 @@ export default function LoginPage() {
     setLoading(true);
     const ok = await login(email, password);
     setLoading(false);
-    if (ok) window.location.href = "/";
-    else setError("Invalid email or password");
+    if (ok) {
+      await new Promise(r => setTimeout(r, 300));
+      window.location.href = "/";
+    } else setError("Invalid email or password");
   }
 
   async function handleSendOtp(e: React.FormEvent) {

@@ -20,8 +20,10 @@ export default function RegisterPage() {
     setLoading(true);
     const ok = await register(email, password, fullName, phone);
     setLoading(false);
-    if (ok) window.location.href = "/";
-    else setError("Registration failed — email may already exist");
+    if (ok) {
+      await new Promise(r => setTimeout(r, 300));
+      window.location.href = "/";
+    } else setError("Registration failed — email may already exist");
   }
 
   return (
