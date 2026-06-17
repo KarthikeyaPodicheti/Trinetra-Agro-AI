@@ -27,7 +27,7 @@ export default function LoginPage() {
     const ok = await login(email, password);
     setLoading(false);
     if (ok) {
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, 500));
       window.location.href = "/";
     } else setError("Invalid email or password");
   }
