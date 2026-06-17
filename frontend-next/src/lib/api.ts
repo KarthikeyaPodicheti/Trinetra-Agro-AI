@@ -56,9 +56,11 @@ async function request<T>(
   body?: unknown,
   isFormData?: boolean
 ): Promise<T> {
-  // Ensure token is valid
+  // Only refresh token for authenticated requests (not login/register)
+  const isAuthEndpoint = path === "/auth/login" || path === "/auth/register" || path === "/auth/send-otp" || path === "/auth/verify-otp" || path === "/auth/refresh";
+  
   let token = getCookie("access_token");
-  if (token && isTokenExpired(token)) {
+  if (token && isTokenExpired(token) && !isAuthEndpoint) {
     const refreshed = await refreshToken();
     if (!refreshed) {
       deleteCookie("access_token");
