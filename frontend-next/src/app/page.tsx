@@ -57,33 +57,33 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Hero */}
-      <div className="liquidGlass-wrapper mb-6" style={{ borderRadius: "1.25rem", padding: 0, cursor: "default", background: "linear-gradient(135deg, #166534, #15803d, #22c55e)" }}>
-        <div className="liquidGlass-effect" style={{ background: "rgba(255,255,255,0.1)" }} />
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+      {/* Hero — season-aware gradient with ambient depth */}
+      <div className="liquidGlass-wrapper mb-5 sm:mb-6" style={{ borderRadius: "1rem", padding: 0, cursor: "default", background: `linear-gradient(135deg, ${info.color}, ${info.color}dd, #166534)` }}>
+        <div className="liquidGlass-effect" style={{ background: "rgba(255,255,255,0.08)" }} />
         <div className="liquidGlass-tint" />
         <div className="liquidGlass-shine" />
-        <div className="liquidGlass-text" style={{ padding: "1.5rem", color: "white", position: "relative", zIndex: 3 }}>
-          <div className="flex justify-between items-start flex-wrap gap-4">
+        <div className="liquidGlass-text" style={{ padding: "clamp(1rem, 4vw, 1.5rem)", color: "white", position: "relative", zIndex: 3 }}>
+          <div className="flex justify-between items-start flex-wrap gap-3">
             <div>
-              <h2 style={{ fontSize: "1.75rem", fontWeight: 700 }}>📊 {T("farmDashboard")}</h2>
-              <p style={{ marginTop: "0.25rem", opacity: 0.8, fontSize: "0.875rem" }}>{dateStr}</p>
-              <p style={{ marginTop: "0.5rem", opacity: 0.9 }}>
+              <h2 style={{ fontSize: "clamp(1.25rem, 5vw, 1.75rem)", fontWeight: 700, lineHeight: 1.2 }}>📊 {T("farmDashboard")}</h2>
+              <p style={{ marginTop: "0.25rem", opacity: 0.8, fontSize: "clamp(0.75rem, 2.8vw, 0.875rem)" }}>{dateStr}</p>
+              <p style={{ marginTop: "0.375rem", opacity: 0.9, fontSize: "clamp(0.75rem, 2.8vw, 0.875rem)" }}>
                 🌾 {lang === "Telugu" ? "సీజన్" : lang === "Hindi" ? "मौसम" : "Season"}: <strong>{seasonLabel[season][lang]}</strong>
               </p>
             </div>
             {weather && (
               <div style={{ textAlign: "right" }}>
-                <p style={{ fontSize: "1.5rem", fontWeight: 700 }}>{weather.temp}°C</p>
-                <p style={{ opacity: 0.85, fontSize: "0.875rem" }}>{weather.desc}</p>
+                <p style={{ fontSize: "clamp(1.125rem, 4.5vw, 1.5rem)", fontWeight: 700, lineHeight: 1 }}>{weather.temp}°C</p>
+                <p style={{ opacity: 0.85, fontSize: "clamp(0.75rem, 2.8vw, 0.875rem)" }}>{weather.desc}</p>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      {/* Quick Actions — min 44px touch, stretch on mobile */}
+      <div className="grid grid-cols-3 gap-2.5 sm:gap-3 mb-5 sm:mb-6">
         {[
           { label: `🔬 ${T("scanDisease")}`, path: "/disease-scanner" },
           { label: `📈 ${T("marketPrices")}`, path: "/market" },
@@ -94,26 +94,26 @@ export default function DashboardPage() {
             <div className="liquidGlass-tint" />
             <div className="liquidGlass-shine" />
             <button onClick={() => router.push(btn.path)} className="liquidGlass-text"
-              style={{ width: "100%", padding: "0.875rem", fontSize: "0.875rem", fontWeight: 600, textAlign: "center", color: "#1A6B2C", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+              style={{ width: "100%", minHeight: "44px", padding: "clamp(0.625rem, 2vw, 0.875rem)", fontSize: "clamp(0.75rem, 2.8vw, 0.875rem)", fontWeight: 600, textAlign: "center", color: "#1A6B2C", background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
               {btn.label}
             </button>
           </div>
         ))}
       </div>
 
-      {/* Season Crops + Tasks */}
-      <div className="grid md:grid-cols-2 gap-6 mb-6">
+      {/* Season Crops + Tasks — single column on mobile */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-5 sm:mb-6">
         <div className="liquidGlass-wrapper" style={{ cursor: "default" }}>
           <div className="liquidGlass-effect" />
           <div className="liquidGlass-tint" />
           <div className="liquidGlass-shine" />
-          <div className="liquidGlass-text" style={{ padding: "1.25rem" }}>
-            <h3 style={{ fontSize: "0.9375rem", fontWeight: 600, color: info.color, marginBottom: "0.75rem" }}>
+          <div className="liquidGlass-text" style={{ padding: "clamp(1rem, 3vw, 1.25rem)" }}>
+            <h3 style={{ fontSize: "clamp(0.875rem, 3vw, 0.9375rem)", fontWeight: 600, color: info.color, marginBottom: "0.75rem" }}>
               🌾 {lang === "Telugu" ? `${seasonLabel[season][lang]} పంటలు` : lang === "Hindi" ? `${seasonLabel[season][lang]} फसलें` : `${seasonLabel[season][lang]} Season Crops`}
             </h3>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
               {info.crops.map((crop) => (
-                <span key={crop} style={{ background: "rgba(34,197,94,0.1)", color: "#166534", padding: "0.375rem 0.75rem", borderRadius: "9999px", fontSize: "0.8125rem", fontWeight: 500 }}>{crop}</span>
+                <span key={crop} style={{ background: "rgba(34,197,94,0.1)", color: "#166534", padding: "clamp(0.25rem, 1vw, 0.375rem) clamp(0.5rem, 2vw, 0.75rem)", borderRadius: "9999px", fontSize: "clamp(0.75rem, 2.6vw, 0.8125rem)", fontWeight: 500, lineHeight: 1.4 }}>{crop}</span>
               ))}
             </div>
           </div>
@@ -123,14 +123,14 @@ export default function DashboardPage() {
           <div className="liquidGlass-effect" />
           <div className="liquidGlass-tint" />
           <div className="liquidGlass-shine" />
-          <div className="liquidGlass-text" style={{ padding: "1.25rem" }}>
-            <h3 style={{ fontSize: "0.9375rem", fontWeight: 600, color: "rgba(0,0,0,0.7)", marginBottom: "0.75rem" }}>
+          <div className="liquidGlass-text" style={{ padding: "clamp(1rem, 3vw, 1.25rem)" }}>
+            <h3 style={{ fontSize: "clamp(0.875rem, 3vw, 0.9375rem)", fontWeight: 600, color: "rgba(0,0,0,0.7)", marginBottom: "0.75rem" }}>
               ✅ {lang === "Telugu" ? "ఈ సీజన్ పనులు" : lang === "Hindi" ? "इस मौसम के कार्य" : "Seasonal Tasks"}
             </h3>
             <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
               {info.tasks.map((task, i) => (
-                <li key={i} style={{ padding: "0.375rem 0", fontSize: "0.8125rem", color: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                  <span style={{ color: "#22c55e" }}>○</span> {task}
+                <li key={i} style={{ padding: "0.4375rem 0", fontSize: "clamp(0.75rem, 2.6vw, 0.8125rem)", color: "rgba(0,0,0,0.65)", display: "flex", alignItems: "center", gap: "0.5rem", lineHeight: 1.4, minHeight: "44px" }}>
+                  <span style={{ color: "#22c55e", flexShrink: 0 }}>○</span> <span>{task}</span>
                 </li>
               ))}
             </ul>
@@ -138,18 +138,18 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Weather Advisory + Ask AI */}
-      <div className="grid md:grid-cols-2 gap-6 mb-6">
+      {/* Weather Advisory + Ask AI — single column on mobile */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-5 sm:mb-6">
         <div className="liquidGlass-wrapper" style={{ cursor: "default" }}>
           <div className="liquidGlass-effect" />
           <div className="liquidGlass-tint" />
           <div className="liquidGlass-shine" />
-          <div className="liquidGlass-text" style={{ padding: "1.25rem" }}>
-            <h3 style={{ fontSize: "0.9375rem", fontWeight: 600, color: "rgba(0,0,0,0.7)", marginBottom: "0.75rem" }}>
+          <div className="liquidGlass-text" style={{ padding: "clamp(1rem, 3vw, 1.25rem)" }}>
+            <h3 style={{ fontSize: "clamp(0.875rem, 3vw, 0.9375rem)", fontWeight: 600, color: "rgba(0,0,0,0.7)", marginBottom: "0.75rem" }}>
               🌤️ {lang === "Telugu" ? "వాతావరణ సలహా" : lang === "Hindi" ? "मौसम सलाह" : "Weather Advisory"}
             </h3>
             {weather ? (
-              <div style={{ padding: "0.75rem", background: "rgba(34,197,94,0.08)", borderRadius: "0.75rem", fontSize: "0.8125rem", color: "#166534" }}>
+              <div style={{ padding: "clamp(0.625rem, 2vw, 0.75rem)", background: "rgba(34,197,94,0.08)", borderRadius: "0.75rem", fontSize: "clamp(0.75rem, 2.6vw, 0.8125rem)", color: "#166534", lineHeight: 1.5 }}>
                 {weather.temp > 35
                   ? (lang === "Telugu" ? "⚠️ అధిక ఉష్ణోగ్రత — ఉదయం/సాయంత్రం నీరు పెట్టండి, మల్చింగ్ వాడండి" : lang === "Hindi" ? "⚠️ अधिक तापमान — सुबह/शाम सिंचाई करें, मल्चिंग करें" : "⚠️ High temp — irrigate morning/evening, use mulching")
                   : weather.temp < 10
@@ -157,7 +157,7 @@ export default function DashboardPage() {
                   : (lang === "Telugu" ? "✅ వ్యవసాయానికి అనుకూల వాతావరణం. పంట పనులు కొనసాగించండి." : lang === "Hindi" ? "✅ खेती के लिए अनुकूल मौसम। फसल कार्य जारी रखें।" : "✅ Favorable weather. Continue farm operations normally.")}
               </div>
             ) : (
-              <p style={{ fontSize: "0.8125rem", color: "rgba(0,0,0,0.4)" }}>
+              <p style={{ fontSize: "clamp(0.75rem, 2.6vw, 0.8125rem)", color: "rgba(0,0,0,0.4)" }}>
                 {lang === "Telugu" ? "లొకేషన్ అనుమతి ఇవ్వండి" : lang === "Hindi" ? "लोकेशन अनुमति दें" : "Allow location for weather advisory"}
               </p>
             )}
@@ -168,8 +168,8 @@ export default function DashboardPage() {
           <div className="liquidGlass-effect" />
           <div className="liquidGlass-tint" />
           <div className="liquidGlass-shine" />
-          <div className="liquidGlass-text" style={{ padding: "1.25rem" }}>
-            <h3 style={{ fontSize: "0.9375rem", fontWeight: 600, color: "rgba(0,0,0,0.7)", marginBottom: "0.75rem" }}>
+          <div className="liquidGlass-text" style={{ padding: "clamp(1rem, 3vw, 1.25rem)" }}>
+            <h3 style={{ fontSize: "clamp(0.875rem, 3vw, 0.9375rem)", fontWeight: 600, color: "rgba(0,0,0,0.7)", marginBottom: "0.75rem" }}>
               🤖 {lang === "Telugu" ? "AI ని అడగండి" : lang === "Hindi" ? "AI से पूछें" : "Ask AI Anything"}
             </h3>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
@@ -179,12 +179,12 @@ export default function DashboardPage() {
                 ? ["मेरी फसल को कौन सा खाद दें?", "भाव कब बढ़ेगा?", "बीमारी कैसे रोकें?"]
                 : ["What fertilizer for my crop?", "When will prices rise?", "How to prevent disease?"]
               ).map((q) => (
-                <div key={q} style={{ padding: "0.5rem 0.75rem", background: "rgba(34,197,94,0.08)", borderRadius: "0.5rem", fontSize: "0.8125rem", color: "#166534" }}>
+                <div key={q} style={{ padding: "clamp(0.4375rem, 1.5vw, 0.5rem) clamp(0.625rem, 2vw, 0.75rem)", background: "rgba(34,197,94,0.08)", borderRadius: "0.5rem", fontSize: "clamp(0.75rem, 2.6vw, 0.8125rem)", color: "#166534", minHeight: "44px", display: "flex", alignItems: "center" }}>
                   💬 {q}
                 </div>
               ))}
             </div>
-            <p style={{ marginTop: "0.75rem", fontSize: "0.75rem", color: "rgba(0,0,0,0.4)" }}>
+            <p style={{ marginTop: "0.75rem", fontSize: "clamp(0.6875rem, 2.4vw, 0.75rem)", color: "rgba(0,0,0,0.4)" }}>
               {lang === "Telugu" ? "క్లిక్ చేసి చాట్ చేయండి →" : lang === "Hindi" ? "क्लिक करके चैट करें →" : "Click to chat →"}
             </p>
           </div>
