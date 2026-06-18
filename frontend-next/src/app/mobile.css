@@ -31,6 +31,14 @@ body {
   /* Reset display for inline links inside text blocks */
   p > a, span > a, li > a, td > a {
     display: inline;
+    padding: 12px 4px;
+    line-height: 24px;
+  }
+  /* Auth page footer links (Register / Sign In) must meet touch target */
+  a[href="/register"], a[href="/login"] {
+    display: inline-block;
+    min-height: 44px;
+    line-height: 44px;
   }
 
   /* Primary CTAs get 48px minimum — Fitts' Law for thumb zone */
