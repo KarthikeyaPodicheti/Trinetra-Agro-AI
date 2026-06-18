@@ -564,6 +564,109 @@ These features have database tables and TypeScript types defined, but no backend
 
 ---
 
+---
+
+## 🚀 The Deployment Journey — How We Went From Localhost To Live
+
+This section is for anyone who has ever stared at a "Registration failed" error, redeployed six times, and wondered if they're losing their mind. You're not. Here's our story.
+
+### The Setup
+
+**Frontend**: Vercel (free tier — Next.js native hosting)  
+**Backend**: DigitalOcean VPS ($6/month on GitHub Student credits — 33 months of runway)  
+**Database**: Supabase PostgreSQL (free tier — 500MB)  
+**HTTPS Tunnel**: Cloudflare Tunnel (`trycloudflare.com` — free forever)
+
+Three services, zero monthly cost. In theory, this should take twenty minutes.
+
+It took four hours.
+
+### Bug #1 — "Email Already Registered"
+
+The first deploy to Vercel went smoothly. The login page loaded. The background image loaded. The glass effect looked stunning. Clicking "Register" returned: `Registration failed — email may already exist`.
+
+This was a lie.
+
+The frontend was **not calling the backend at all**. The `NEXT_PUBLIC_API_URL` environment variable on Vercel was empty, so the API client fell back to `http://localhost:8000`. In production, the user's web browser was trying to connect to their own laptop, where no backend was running. The registration never left the browser. The error message was the `catch` block — not the real error.
+
+**Fix**: Set `NEXT_PUBLIC_API_URL=http://139.59.83.96` from the Vercel CLI.
+
+### Bug #2 — Mixed Content Blocking
+
+Fixed the env var. Redeployed. Same error.
+
+Vercel serves pages over **HTTPS**. Our VPS backend was plain **HTTP**. Modern browsers block all HTTP requests originating from HTTPS pages — this is called **Mixed Content Policy**, and it exists to protect users. Not a single registration request appeared in the VPS nginx logs. The `fetch()` call was silently killed by Chrome before it could even connect.
+
+**Fix**: Installed `cloudflared` (Cloudflare Tunnel) on the VPS. This wraps the HTTP backend in a free Cloudflare HTTPS endpoint — `https://shirts-flexible-michelle-classes.trycloudflare.com`. The tunnel runs 24/7 via PM2 and auto-restarts on VPS reboot. Zero DNS configuration, instant SSL.
+
+### Bug #3 — The Redirect Loop From Hell
+
+Fixed the HTTPS issue. Set the env var to the Cloudflare URL. Redeployed. Navigated to the login page. Typed credentials. Clicked Sign In.
+
+The page flashed white for 200 milliseconds and sent me back to `/login`.
+
+This one took the longest to debug. Here's what was actually happening:
+
+**The `request()` function** in `src/lib/api.ts` has a global intercepting mechanism. For every API call, it checks if the access token exists. If the token doesn't exist (which it shouldn't — the user hasn't logged in yet!), it tries to refresh it. If refresh fails (which it will — there's no refresh token either), it redirects to `/login`.
+
+The call chain looked like this:
+
+```
+User clicks Sign In
+  → login() calls apiClient.post("/auth/login", ...)
+    → request() fires
+      → "No access token! Let me refresh..."
+        → "No refresh token either! Redirect to /login!"
+          → User never reaches the login endpoint
+```
+
+The login API call was being **killed by its own auth guard before it could authenticate the user**. The function that was supposed to protect routes was also protecting the login route from itself.
+
+**Fix**: Added `isAuthEndpoint` check in `request()` — if the path starts with `/auth/login`, `/auth/register`, `/auth/send-otp`, `/auth/verify-otp`, or `/auth/refresh`, skip the entire token validation chain and let the request reach the backend directly.
+
+### Bug #4 — The Silent Cookie Killer
+
+Fixed the redirect loop. Redeployed. Same behavior — flash and redirect.
+
+A Playwright E2E test revealed the truth: the login flow **worked perfectly** in an automated headless browser. Cookies were present. `Secure` flag was `true`. Dashboard loaded. But in my own browser, it kept failing.
+
+The answer: **stale cookies from ten previous deployments**.
+
+Every time Vercel deploys, it reuses the same domain (`frontend-next-xi-six.vercel.app`). Cookies from deployment #1, #2, and #3 were all still in my browser session. The middleware was reading an ancient `access_token` that had been set **before** the `Secure` flag was added. Modern browsers prioritize the oldest matching cookie when multiple exist for the same domain — so the old broken cookie won every time.
+
+**Fix**: Three things:
+1. Added `Secure` flag to `setCookie()` — without this, cookies on HTTPS origins are silently dropped
+2. Added a **stale cookie purge** in the login handler — force-clears both `access_token` and `refresh_token` cookies on the current domain before redirecting
+3. Added a `300ms` delay between cookie set and `window.location.href = "/"` — cookies flush asynchronously, and redirecting immediately can lose them
+
+### Bug #5 — The Wrong Pooler Host
+
+The VPS was using SQLite because "Supabase PostgreSQL is unreachable from DigitalOcean Bangalore." — *our original deployment note*
+
+The database host `db.jqbmrpvuruluxjooxzrg.supabase.co` resolves to **IPv6** only (`2406:da1c:61c:d600:...`). DigitalOcean's Bangalore (BLR1) datacenter is **IPv4-only**. The `asyncpg` driver threw `OSError: Network is unreachable` on every query.
+
+Supabase has a **connection pooler** that runs on IPv4 — `aws-1-ap-southeast-2.pooler.supabase.com`. But we were using the wrong pooler host (`aws-0-ap-south-1`). The pooler returned `ENOTFOUND: tenant/user not found` — it couldn't route to a project it didn't know about.
+
+**Fix**: Used the Supabase Management API (with your personal access token `sbp_...`) to query the project configuration. The correct pooler is `aws-1-ap-southeast-2.pooler.supabase.com:6543` (port 6543, transaction mode). Updated the `DATABASE_URL` and restarted the backend. Health check now returns `"database": "supabase_postgresql"`.
+
+### Bug #6 — Missing Model File, Missing TensorFlow
+
+The disease scanner returned "Running in fallback mode — train MobileNetV2 model for accurate predictions." even though the model file was committed to Git and deployed to the VPS.
+
+The `.keras` file was present at 25.9MB. The inference code could find it. But TensorFlow — the library needed to load and run it — **wasn't installed on the production VPS**. It wasn't in `requirements.txt` (TF is 500MB+ and would crash the VPS during `pip install` if not done carefully).
+
+**Fix**: Installed TensorFlow 2.21.0 on the VPS with `pip install tensorflow --break-system-packages`. The model loaded successfully. The health check now shows real inference with 98.76% accuracy. Note: TF runs on CPU only (no NVIDIA GPU on the $6/month droplet) — inference takes ~0.5 seconds per image, which is acceptable.
+
+### Bug #7 — The AI Chatbot Silent Failure
+
+The chatbot was responding with "I'm Trinetra, your AI farming advisor..." — the fallback message — instead of real AI answers. The OpenRouter API key was valid. The endpoint returned 200. The network was fine.
+
+The model was `openrouter/free` — OpenRouter's automatic free model router. This wildcard model takes **30+ seconds** to resolve and respond. The `requests` call in `openrouter_service.py` had a `timeout=30`, which meant it was killing the request right as the model started responding.
+
+**Fix**: Switched to `google/gemma-4-31b-it:free` — a specific free model that responds in 2-4 seconds. Updated `OPENROUTER_MODEL` in the VPS `.env` file and restarted the backend. The chatbot now gives real AI answers with personalized farming advice.
+
+---
+
 ## Troubleshooting
 
 | Problem | Likely Cause | Solution |
