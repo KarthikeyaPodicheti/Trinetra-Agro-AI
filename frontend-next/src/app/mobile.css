@@ -22,9 +22,15 @@ body {
 
 /* Force all interactive elements to meet minimum touch target size */
 @media (max-width: 768px) {
-  /* Apple HIG minimum: 44x44px */
-  button, a[role="button"], input, select, textarea, [role="button"] {
+  /* Apple HIG minimum: 44x44px — all tappable elements including plain links */
+  button, a, input, select, textarea, [role="button"] {
     min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  /* Reset display for inline links inside text blocks */
+  p > a, span > a, li > a, td > a {
+    display: inline;
   }
 
   /* Primary CTAs get 48px minimum — Fitts' Law for thumb zone */
