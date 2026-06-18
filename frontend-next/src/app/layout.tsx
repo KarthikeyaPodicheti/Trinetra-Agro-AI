@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./mobile.css";
 import { AppShell } from "./app-shell";
 import { GlassFilter } from "@/components/glass-filter";
 import { LangProvider } from "@/lib/language";

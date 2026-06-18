@@ -1,0 +1,19 @@
+
+
+/* MOBILE-FIRST RESPONSIVE RULES */
+html { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+@media (max-width: 768px) {
+  button, a, input, select, textarea, [role=button] { min-height: 44px; }
+  .liquid-glass-btn, .btn-primary, .btn-secondary, button[type=submit] { min-height: 48px; padding-top: 0.75rem; padding-bottom: 0.75rem; }
+  input, select, textarea, button { font-size: 16px !important; }
+  .p-6 { padding: 1rem; }
+  .p-8 { padding: 1.25rem; }
+  .grid-cols-4 { grid-template-columns: repeat(2, 1fr); }
+  .max-w-sm, .max-w-md, .max-w-lg, .max-w-2xl { max-width: 100%; }
+  aside.liquid-glass-sidebar { width: 72vw; max-width: 280px; }
+  input:focus, textarea:focus, select:focus { scroll-margin-bottom: 120px; }
+  form { padding-bottom: env(safe-area-inset-bottom, 20px); }
+  .floating-chat-bubble { width: 56px; height: 56px; bottom: 1rem; right: 1rem; }
+  .floating-chat-panel { width: calc(100vw - 2rem); max-width: 380px; max-height: 70vh; bottom: 4.5rem; right: 0.5rem; }
+}
+* { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
