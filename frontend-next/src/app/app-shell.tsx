@@ -20,12 +20,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const NAV = [
     { label: `📊  ${T("dashboard")}`, path: "/" },
-    { label: `🛠️  ${T("farmTools")}`, path: "/tools" },
     { label: `🔬  ${T("diseaseScanner")}`, path: "/disease-scanner" },
+    { label: `🧪  Fertilizer Calc`, path: "/fertilizer" },
     { label: `📈  ${T("marketIntelligence")}`, path: "/market" },
+    { label: `📅  ${T("cropCalendar")}`, path: "/calendar" },
+    { label: `☁️  ${T("weather")}`, path: "/weather" },
+    { label: `🏛️  Govt Schemes`, path: "/schemes" },
     { label: `🤖  ${T("farmAssistant")}`, path: "/chatbot" },
-    { label: `🧑‍🌾  ${T("farmProfile")}`, path: "/profile" },
-    { label: `📝  ${T("feedback")}`, path: "/feedback" },
   ];
 
   useEffect(() => {

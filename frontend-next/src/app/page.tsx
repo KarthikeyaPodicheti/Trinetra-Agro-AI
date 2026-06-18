@@ -11,37 +11,28 @@ function getCurrentSeason() {
   return "zaid";
 }
 
-const SEASON_INFO = {
-  kharif: {
-    crops: ["Rice", "Cotton", "Maize", "Soybean", "Groundnut"],
-    tasks: ["Prepare nursery beds", "Check monsoon forecast", "Apply basal fertilizer", "Ensure drainage channels are clear"],
-    color: "#2E7D32",
-  },
-  rabi: {
-    crops: ["Wheat", "Mustard", "Chickpea", "Potato", "Peas"],
-    tasks: ["Prepare land after kharif harvest", "Plan irrigation schedule", "Seed treatment before sowing", "Apply FYM/compost"],
-    color: "#1565C0",
-  },
-  zaid: {
-    crops: ["Watermelon", "Cucumber", "Moong", "Sunflower", "Vegetables"],
-    tasks: ["Ensure water availability", "Use mulching to conserve moisture", "Plan short-duration crops", "Monitor for summer pests"],
-    color: "#E65100",
-  },
+const SEASON_INFO: Record<string, { crops: string[]; tasks: string[]; color: string; defaultCrop: string }> = {
+  kharif: { crops: ["Rice", "Cotton", "Maize", "Soybean", "Groundnut"], tasks: ["Prepare nursery beds", "Check monsoon forecast", "Apply basal fertilizer", "Ensure drainage channels are clear"], color: "#2E7D32", defaultCrop: "Cotton" },
+  rabi: { crops: ["Wheat", "Mustard", "Chickpea", "Potato", "Peas"], tasks: ["Prepare land after kharif harvest", "Plan irrigation schedule", "Seed treatment before sowing", "Apply FYM/compost"], color: "#1565C0", defaultCrop: "Wheat" },
+  zaid: { crops: ["Watermelon", "Cucumber", "Moong", "Sunflower", "Vegetables"], tasks: ["Ensure water availability", "Use mulching to conserve moisture", "Plan short-duration crops", "Monitor for summer pests"], color: "#E65100", defaultCrop: "Moong" },
 };
 
 export default function DashboardPage() {
   const router = useRouter();
   const { T, lang } = useLang();
   const [weather, setWeather] = useState<{ temp: number; desc: string } | null>(null);
+  const [price, setPrice] = useState<{ crop: string; price: number; trend: string } | null>(null);
+  const [stage, setStage] = useState<{ crop: string; stage: string; tip: string } | null>(null);
+  const [schemes, setSchemes] = useState<{ count: number; top: string[] } | null>(null);
 
   const season = getCurrentSeason();
   const info = SEASON_INFO[season];
-  const dateStr = new Date().toLocaleDateString(lang === "Telugu" ? "te-IN" : lang === "Hindi" ? "hi-IN" : "en-IN", {
-    weekday: "long", year: "numeric", month: "long", day: "numeric",
-  });
-  const seasonLabel = { kharif: { English: "Kharif", Hindi: "खरीफ", Telugu: "ఖరీఫ్" }, rabi: { English: "Rabi", Hindi: "रबी", Telugu: "రబీ" }, zaid: { English: "Zaid", Hindi: "जायद", Telugu: "జైద్" } };
+  const dateStr = new Date().toLocaleDateString(lang === "Telugu" ? "te-IN" : lang === "Hindi" ? "hi-IN" : "en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  const seasonLabel: Record<string, Record<string, string>> = { kharif: { English: "Kharif", Hindi: "खरीफ", Telugu: "ఖరీఫ్" }, rabi: { English: "Rabi", Hindi: "रबी", Telugu: "రబీ" }, zaid: { English: "Zaid", Hindi: "जायद", Telugu: "జైద్" } };
 
   useEffect(() => {
+    const API = process.env.NEXT_PUBLIC_API_URL || "https://shirts-flexible-michelle-classes.trycloudflare.com";
+
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(async (pos) => {
         try {
@@ -49,17 +40,45 @@ export default function DashboardPage() {
           const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
           const data = await r.json();
           const cw = data.current_weather;
-          const codes: Record<number, string> = { 0: "☀️ Clear", 1: "🌤️ Mostly Clear", 2: "⛅ Partly Cloudy", 3: "☁️ Overcast", 45: "🌫️ Fog", 51: "🌦️ Drizzle", 61: "🌧️ Rain", 63: "🌧️ Moderate Rain", 65: "🌧️ Heavy Rain", 80: "🌦️ Showers", 95: "⛈️ Storm" };
+          const codes: Record<number, string> = { 0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️", 45: "🌫️", 51: "🌦️", 61: "🌧️", 63: "🌧️", 65: "🌧️", 80: "🌦️", 95: "⛈️" };
           setWeather({ temp: Math.round(cw.temperature), desc: codes[cw.weathercode] || "🌤️" });
-        } catch { /* silent */ }
+        } catch { /* offline */ }
       }, () => {});
     }
+
+    fetch(`${API}/mandi/prices?crop=${info.defaultCrop}`)
+      .then(r => r.json())
+      .then(d => { if (d.current_price) setPrice({ crop: d.crop || info.defaultCrop, price: d.current_price, trend: d.trend || "stable" }); })
+      .catch(() => {});
+
+    fetch(`${API}/calendar/generate?crop=${info.defaultCrop}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.timeline) {
+          const today = new Date().toISOString().slice(0, 10);
+          const current = d.timeline.find((s: any) => s.date_range.start <= today && s.date_range.end >= today);
+          if (current) setStage({ crop: d.crop, stage: current.stage, tip: current.tip });
+        }
+      })
+      .catch(() => {});
+
+    fetch(`${API}/schemes/check`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ state: "Maharashtra", land_size_acres: 2, crop_type: info.defaultCrop }),
+    })
+      .then(r => r.json())
+      .then(d => { if (d.eligible_count) setSchemes({ count: d.eligible_count, top: (d.eligible || []).slice(0, 3).map((s: any) => s.name) }); })
+      .catch(() => {});
   }, []);
+
+  const trendEmoji: Record<string, string> = { rising: "📈", falling: "📉", stable: "📊" };
 
   return (
     <div className="p-4 sm:p-6 w-full" style={{ maxWidth: "100vw" }}>
-      {/* Hero — season-aware gradient with ambient depth */}
-      <div className="liquidGlass-wrapper mb-5 sm:mb-6" style={{ borderRadius: "1rem", padding: 0, cursor: "default", background: `linear-gradient(135deg, ${info.color}, ${info.color}dd, #166534)` }}>
+
+      {/* ==================== HERO ==================== */}
+      <div className="liquidGlass-wrapper mb-4 sm:mb-5" style={{ borderRadius: "1rem", padding: 0, cursor: "default", background: `linear-gradient(135deg, ${info.color}, ${info.color}dd, #166534)` }}>
         <div className="liquidGlass-effect" style={{ background: "rgba(255,255,255,0.08)" }} />
         <div className="liquidGlass-tint" />
         <div className="liquidGlass-shine" />
@@ -82,12 +101,50 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Quick Actions — min 44px touch, stretch on mobile */}
-      <div className="grid grid-cols-3 gap-2.5 sm:gap-3 mb-5 sm:mb-6">
+      {/* ==================== GOVT SCHEMES BOX — standalone, prominent ==================== */}
+      <div className="liquidGlass-wrapper mb-5 sm:mb-6" style={{ cursor: "pointer" }} onClick={() => router.push("/schemes")}>
+        <div className="liquidGlass-effect" />
+        <div className="liquidGlass-tint" />
+        <div className="liquidGlass-shine" />
+        <div className="liquidGlass-text" style={{ padding: "clamp(0.875rem, 3vw, 1.125rem)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "1.75rem", background: "linear-gradient(135deg, #F59E0B, #D97706)", color: "white", borderRadius: "0.75rem", padding: "0.5rem 0.625rem", lineHeight: 1 }}>🏛️</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: "clamp(0.875rem, 3vw, 1rem)", fontWeight: 700, color: "#1A1C19" }}>
+                {lang === "Telugu" ? "🏛️ మీరు ప్రభుత్వ పథకాలకు అర్హులా?" : lang === "Hindi" ? "🏛️ क्या आप सरकारी योजनाओं के लिए पात्र हैं?" : "🏛️ Are you eligible for Govt Schemes?"}
+              </p>
+              <p style={{ fontSize: "clamp(0.75rem, 2.6vw, 0.8125rem)", color: "rgba(0,0,0,0.5)", marginTop: "0.25rem" }}>
+                {lang === "Telugu" ? "PM-KISAN, PMFBY, Kisan Credit Card వంటి 8 పథకాలకు మీ అర్హతను ఒకే క్లిక్‌లో తనిఖీ చేయండి." : lang === "Hindi" ? "PM-KISAN, PMFBY, किसान क्रेडिट कार्ड जैसी 8 योजनाओं के लिए एक क्लिक में अपनी पात्रता जांचें।" : "Check your eligibility for 8 schemes including PM-KISAN, PMFBY, Kisan Credit Card in one click."}
+              </p>
+            </div>
+            <button onClick={(e) => { e.stopPropagation(); router.push("/schemes"); }}
+              style={{ background: "linear-gradient(135deg, #F59E0B, #D97706)", color: "white", border: "none", borderRadius: "0.75rem", padding: "clamp(0.5rem, 2vw, 0.625rem) clamp(1rem, 3vw, 1.25rem)", fontSize: "clamp(0.75rem, 2.6vw, 0.875rem)", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+              {lang === "Telugu" ? "తనిఖీ చేయండి →" : lang === "Hindi" ? "जांचें →" : "Check Now →"}
+            </button>
+          </div>
+
+          {schemes && (
+            <div style={{ marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid rgba(0,0,0,0.06)", display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center" }}>
+              <span style={{ background: "#22c55e", color: "white", padding: "0.2rem 0.5rem", borderRadius: "999px", fontSize: "clamp(0.625rem, 2vw, 0.6875rem)", fontWeight: 600 }}>
+                ✅ {schemes.count}/8 {lang === "Telugu" ? "అర్హత" : lang === "Hindi" ? "पात्र" : "eligible"}
+              </span>
+              {schemes.top.map((name) => (
+                <span key={name} style={{ background: "rgba(34,197,94,0.1)", color: "#166534", padding: "0.2rem 0.625rem", borderRadius: "999px", fontSize: "clamp(0.625rem, 2vw, 0.6875rem)", fontWeight: 500 }}>
+                  {name}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ==================== QUICK ACTIONS ==================== */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 mb-5 sm:mb-6">
         {[
           { label: `🔬 ${T("scanDisease")}`, path: "/disease-scanner" },
           { label: `📈 ${T("marketPrices")}`, path: "/market" },
           { label: `💬 ${T("aiChatbot")}`, path: "/chatbot" },
+          { label: `📅 ${T("cropCalendar")}`, path: "/calendar" },
         ].map((btn) => (
           <div key={btn.path} className="liquidGlass-wrapper" style={{ cursor: "pointer" }}>
             <div className="liquidGlass-effect" />
@@ -101,7 +158,57 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Season Crops + Tasks — single column on mobile */}
+      {/* ==================== LIVE DATA CARDS ==================== */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 mb-5 sm:mb-6">
+        <div className="liquidGlass-wrapper" style={{ cursor: "pointer" }} onClick={() => router.push("/market")}>
+          <div className="liquidGlass-effect" />
+          <div className="liquidGlass-tint" />
+          <div className="liquidGlass-shine" />
+          <div className="liquidGlass-text" style={{ padding: "clamp(0.75rem, 2.5vw, 1rem)", display: "flex", alignItems: "center", gap: "0.75rem", minHeight: "56px" }}>
+            <span style={{ fontSize: "1.5rem" }}>💰</span>
+            <div>
+              <p style={{ fontSize: "clamp(0.6875rem, 2.2vw, 0.75rem)", fontWeight: 500, color: "rgba(0,0,0,0.5)" }}>
+                {lang === "Telugu" ? "నేటి ధర" : lang === "Hindi" ? "आज का भाव" : "Today's Price"}
+              </p>
+              {price ? (
+                <p style={{ fontSize: "clamp(0.9375rem, 3vw, 1.0625rem)", fontWeight: 700, color: "#1A6B2C" }}>
+                  {price.crop} — ₹{price.price}/qtl {trendEmoji[price.trend] || ""}
+                </p>
+              ) : (
+                <p style={{ fontSize: "clamp(0.75rem, 2.6vw, 0.8125rem)", color: "rgba(0,0,0,0.35)" }}>
+                  {lang === "Telugu" ? "మండి ధరలు చూడండి →" : lang === "Hindi" ? "मंडी भाव देखें →" : "Tap for live prices →"}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="liquidGlass-wrapper" style={{ cursor: "pointer" }} onClick={() => router.push("/calendar")}>
+          <div className="liquidGlass-effect" />
+          <div className="liquidGlass-tint" />
+          <div className="liquidGlass-shine" />
+          <div className="liquidGlass-text" style={{ padding: "clamp(0.75rem, 2.5vw, 1rem)", display: "flex", alignItems: "center", gap: "0.75rem", minHeight: "56px" }}>
+            <span style={{ fontSize: "1.5rem" }}>📅</span>
+            <div>
+              <p style={{ fontSize: "clamp(0.6875rem, 2.2vw, 0.75rem)", fontWeight: 500, color: "rgba(0,0,0,0.5)" }}>
+                {lang === "Telugu" ? "ఈ రోజు దశ" : lang === "Hindi" ? "आज की अवस्था" : "Today's Stage"}
+              </p>
+              {stage ? (
+                <>
+                  <p style={{ fontSize: "clamp(0.8125rem, 2.8vw, 0.9375rem)", fontWeight: 600, color: "#1A6B2C" }}>{stage.crop}: {stage.stage}</p>
+                  <p style={{ fontSize: "clamp(0.6875rem, 2.2vw, 0.75rem)", color: "rgba(0,0,0,0.45)", marginTop: "0.125rem" }}>{stage.tip}</p>
+                </>
+              ) : (
+                <p style={{ fontSize: "clamp(0.75rem, 2.6vw, 0.8125rem)", color: "rgba(0,0,0,0.35)" }}>
+                  {lang === "Telugu" ? "పంట క్యాలెండర్ చూడండి →" : lang === "Hindi" ? "फसल कैलेंडर देखें →" : "Tap for crop calendar →"}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ==================== SEASON CROPS + TASKS ==================== */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-5 sm:mb-6">
         <div className="liquidGlass-wrapper" style={{ cursor: "default" }}>
           <div className="liquidGlass-effect" />
@@ -138,7 +245,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Weather Advisory + Ask AI — single column on mobile */}
+      {/* ==================== WEATHER + ASK AI ==================== */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-5 sm:mb-6">
         <div className="liquidGlass-wrapper" style={{ cursor: "default" }}>
           <div className="liquidGlass-effect" />
@@ -157,9 +264,7 @@ export default function DashboardPage() {
                   : (lang === "Telugu" ? "✅ వ్యవసాయానికి అనుకూల వాతావరణం. పంట పనులు కొనసాగించండి." : lang === "Hindi" ? "✅ खेती के लिए अनुकूल मौसम। फसल कार्य जारी रखें।" : "✅ Favorable weather. Continue farm operations normally.")}
               </div>
             ) : (
-              <p style={{ fontSize: "clamp(0.75rem, 2.6vw, 0.8125rem)", color: "rgba(0,0,0,0.4)" }}>
-                {lang === "Telugu" ? "లొకేషన్ అనుమతి ఇవ్వండి" : lang === "Hindi" ? "लोकेशन अनुमति दें" : "Allow location for weather advisory"}
-              </p>
+              <p style={{ fontSize: "clamp(0.75rem, 2.6vw, 0.8125rem)", color: "rgba(0,0,0,0.4)" }}>📍 Allow location for live weather advisory</p>
             )}
           </div>
         </div>
@@ -191,7 +296,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Tip */}
+      {/* ==================== DAILY TIP ==================== */}
       <div className="liquidGlass-wrapper" style={{ cursor: "default" }}>
         <div className="liquidGlass-effect" />
         <div className="liquidGlass-tint" />

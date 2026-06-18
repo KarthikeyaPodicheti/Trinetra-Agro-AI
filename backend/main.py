@@ -12,11 +12,15 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.auth.router import router as auth_router
 from backend.routers.ai_features import router as ai_router
+from backend.routers.calendar import router as calendar_router
 from backend.routers.chatbot import router as chatbot_router
 from backend.routers.disease import router as disease_router
 from backend.routers.feedback import router as feedback_router
+from backend.routers.fertilizer import router as fertilizer_router
 from backend.routers.mandi import router as mandi_router
 from backend.routers.profile import router as profile_router
+from backend.routers.schemes import router as schemes_router
+from backend.routers.weather import router as weather_router
 from backend.core.config import get_settings
 from backend.database.session import get_engine
 from backend.middleware.logging import LoggingMiddleware
@@ -59,11 +63,15 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(ai_router)
+app.include_router(calendar_router)
 app.include_router(chatbot_router)
 app.include_router(disease_router)
 app.include_router(feedback_router)
+app.include_router(fertilizer_router)
 app.include_router(mandi_router)
 app.include_router(profile_router)
+app.include_router(schemes_router)
+app.include_router(weather_router)
 
 
 @app.get("/health", tags=["system"])

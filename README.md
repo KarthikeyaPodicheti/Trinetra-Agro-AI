@@ -34,7 +34,7 @@ All of this works in **English, Hindi, and Telugu**.
 
 ## What Can You Do With This App?
 
-Trinetra Agro AI has **five fully working features** right now. Here they are in the order a farmer would use them:
+Trinetra Agro AI has **eight fully working features** right now. Here they are in the order a farmer would use them:
 
 ### 1. 📋 Create Your Account
 Sign up with your email address and a password. Or use your phone number — the app sends you a one-time code via SMS. Once logged in, you stay logged in even if you close the browser. If your session expires, the app renews it automatically.
@@ -62,6 +62,69 @@ This model achieves **98.76% accuracy** across all 38 diseases.
 Select a crop — say, Rice or Onion — and choose how many days of price forecast you want (7 to 30 days). The app pulls **real-time mandi prices** from the Government of India's data portal (data.gov.in) and analyzes whether prices are trending up, down, or staying flat. It then tells you whether you should **buy, sell, or hold**.
 
 You also get a chart showing the price trend and a set of market tips based on the current situation.
+
+### Plus: ⭐ Rate The App
+
+### 5. ☁️ Check Weather & Spray Advisory
+
+Open the Weather page or see the live dashboard widget. The app detects your location using your phone's GPS (you grant permission once) and calls the **Open-Meteo API** — a free global weather service that provides hyperlocal forecasts. It shows your current temperature, weather conditions, and an automatic advisory: ✅ *"Weather is favorable — continue farm operations"* or 🌧️ *"Wait — rain expected in 3 hours, delay spraying."*
+
+The Spray Advisory feature checks four rules:
+- **Rain within 6 hours** → ❌ Don't spray — chemicals will wash off
+- **Wind above 15 km/h** → ❌ Don't spray — drift will waste chemical and damage neighbors' crops
+- **Temperature above 35°C** → ❌ Don't spray — heat stress amplifies chemical damage to plants
+- **All clear** → ✅ Safe to spray
+
+This directly prevents the #1 cause of pesticide waste in India: farmers spraying before unexpected rain.
+
+You can also view a complete 24-hour hourly forecast table showing temperature, rain probability, wind speed, and a spray-safety indicator for every hour.
+
+### 6. 📅 Plan Your Season With Crop Calendar
+
+Select any crop — Cotton, Rice, Wheat, Maize, Soybean, Groundnut, or Sugarcane — and optionally enter your sowing date. The app generates a **week-by-week timeline** from sowing to harvest, based on **ICAR (Indian Council of Agricultural Research) recommendations**.
+
+For every growth stage, the calendar shows:
+- **💧 Irrigation schedule** — when to water, how much, which method
+- **🧪 Fertilizer plan** — exactly what to apply and when (split doses)
+- **🐛 Pest management** — which pests to watch for at each stage, how to scout, when to spray and with what
+- **💡 Pro tip** — the "field knowledge" that separates experienced farmers from beginners
+
+Example for Cotton, Week 9 (Flowering): *"⚠️ Peak bollworm risk. Scout 20 plants daily at random. Spray only if 5% damage seen. White flowers appear — avoid pesticide during daytime (kills pollinators)."*
+
+The calendar auto-detects today's date and shows which growth stage your crop is currently in — even if you haven't planted yet (uses the sowing date you entered or today's date as default).
+
+### 7. 🏛️ Check Government Scheme Eligibility
+
+India runs over a dozen agricultural schemes — PM-KISAN (₹6,000/year direct cash transfer), PMFBY (crop insurance at 2% premium), Kisan Credit Card (₹3 lakh loan at 4% effective interest), Soil Health Card (free soil testing), PM-KUSUM (60% solar pump subsidy), e-NAM (direct mandi access without middlemen), and more.
+
+Most eligible farmers don't apply because they don't know about these schemes, or think the process is too complicated. The app fixes this.
+
+**From the dashboard**, you see a prominent gold card: *"🏛️ Are you eligible for Govt Schemes? Check your eligibility for 8 schemes including PM-KISAN, PMFBY, Kisan Credit Card in one click."* It also shows your live eligibility count and top-matching scheme names right on the dashboard.
+
+**On the Schemes page**, you enter your state, land size in acres, and what crop you grow. In seconds, the app checks all 8 schemes against official eligibility criteria (land size limits, state-specific programs, farmer category) and returns a card for every scheme you qualify for. Each card shows:
+
+- The benefit amount in rupees
+- Why you qualify ("Land under 2 hectares, all states")
+- Documents you need (Aadhaar card, land record, bank passbook)
+- A direct link to the official government application portal
+- A helpline number if you need help applying
+
+For a typical 2-acre cotton farmer in Maharashtra, the app finds them eligible for **7 out of 8 schemes**. That's ₹6,000/year in PM-KISAN money alone — free cash they might never have known about.
+
+### 8. 🧪 Calculate Exact Fertilizer Dosage
+
+**The problem** — Indian farmers apply 30-50% more urea than needed because the local fertilizer shop recommends "one more bag for good measure." This wastes ₹500-2,000 per acre per season, and over time burns the soil, reducing future yields.
+
+**The solution** — select your crop, your soil type, and your yield goal (Moderate / Good / Maximum). The app looks up the official **ICAR fertilizer recommendation** for that crop and tells you exactly:
+
+- **NPK requirement** in kilograms per acre (Nitrogen, Phosphorus, Potassium)
+- **How many bags of Urea, DAP, and MOP you actually need** — not one bag more
+- **Total cost** at government-subsidised cooperative rates
+- **When to apply each dose** — a stage-wise schedule (Basal / Growth / Peak) with notes on timing
+
+For groundnut, the app tells you the #1 trick: apply gypsum at pegging stage to prevent "pops" (empty pods). For soybean, it reminds you that the crop fixes its own nitrogen through Rhizobium bacteria — applying extra urea is a waste of money.
+
+Every recommendation is based on ICAR-published data and government-subsidised fertilizer prices. Zero guesswork. Saves ₹500-2,000 per acre per season.
 
 ### Plus: ⭐ Rate The App
 After using any feature, you can leave a star rating and a comment. This feedback gets stored and helps improve the app.
@@ -182,9 +245,26 @@ Go to **http://localhost:3000** in your web browser. You'll see the login screen
 
 ---
 
+---
+
 ## How Each Feature Works
 
 This section explains the flow of every feature — from the moment you click a button to when the result appears on your screen.
+
+### The Dashboard — Your Farm's Home Screen
+
+When you log in, the dashboard gives you an at-a-glance view of everything that matters today:
+
+- **Season banner** — detects the current agricultural season (Kharif / Rabi / Zaid) and shows relevant crops
+- **Live temperature and weather** — from your phone's GPS, no setup required
+- **Today's Mandi Price** — for the current season's default crop, with trend arrow (📈 rising / 📉 falling / 📊 stable)
+- **Today's Crop Stage** — what growth stage today falls in, with a pro tip (from the Crop Calendar)
+- **Govt Schemes eligibility** — how many schemes you qualify for, with top scheme names, right on the dashboard
+- **Quick actions** — one-tap buttons to Disease Scanner, Mandi Prices, AI Chatbot, and Crop Calendar
+- **Seasonal tasks checklist** — what to do this season specific to Kharif/Rabi/Zaid
+- **Pre-written AI questions** — tap any question to ask the chatbot instantly
+
+Everything on the dashboard is **live** — prices come from the Mandi API, the crop stage comes from the Calendar API, weather comes from your GPS. Nothing is hardcoded.
 
 ### Authentication (Login & Register)
 
@@ -376,13 +456,23 @@ Trinetra-Agro-AI/
 │   │   ├── chatbot.py                    # POST /chat/send, /chat/clear
 │   │   ├── disease.py                    # POST /ai/disease (leaf image upload)
 │   │   ├── feedback.py                   # POST /feedback (star ratings)
+│   │   ├── mandi.py                      # GET /mandi/prices (live crop prices)
+│   │   ├── weather.py                    # GET /weather/spray-advisory, /weather/forecast
+│   │   ├── calendar.py                   # GET /calendar/generate (crop timeline)
+│   │   ├── schemes.py                    # POST /schemes/check (govt eligibility)
+│   │   ├── fertilizer.py                 # GET /fertilizer/calculate (NPK dosage)
 │   │   └── profile.py                    # GET/POST/PUT /profile (farmer profile CRUD)
 │   │
 │   ├── services/                         # Business logic layer
 │   │   ├── ai_service.py                # Market forecast orchestration + DB persistence
 │   │   ├── chatbot_service.py           # Chat session management, context assembly, fallback
 │   │   ├── openrouter_service.py        # OpenRouter HTTP client, system prompt construction
-│   │   └── disease_service.py           # Disease detector singleton, TF model loading
+│   │   ├── disease_service.py           # Disease detector singleton, TF model loading
+│   │   ├── mandi_service.py             # data.gov.in API client with 30-min cache + trend engine
+│   │   ├── weather_service.py           # Open-Meteo API client + spray advisory rules
+│   │   ├── crop_calendar_service.py     # ICAR-based 7-crop stage-wise calendar generator
+│   │   ├── scheme_service.py            # 8-scheme eligibility matching engine
+│   │   └── fertilizer_service.py        # ICAR NPK recommendations for 7 crops
 │   │
 │   ├── schemas/                          # Pydantic models for request/response validation
 │   │   ├── auth.py                       # UserCreate, UserLogin, TokenResponse, TokenRefresh
@@ -397,22 +487,27 @@ Trinetra-Agro-AI/
 │
 ├── frontend-next/                        # Next.js frontend (user interface)
 │   ├── src/app/
-│   │   ├── layout.tsx                    # Root HTML shell — imports global CSS, mounts glass filter
-│   │   ├── page.tsx                      # Dashboard — KPI cards, quick actions, market & resource charts
-│   │   ├── app-shell.tsx                 # Sidebar navigation, mobile menu, auth guard, logout
-│   │   ├── globals.css                   # Design tokens, liquid glass classes, utility classes
+│   │   ├── layout.tsx                    # Root HTML shell — imports global CSS, mounts glass filter, PWA registration
+│   │   ├── page.tsx                      # Dashboard — live weather from GPS, live mandi price, crop stage, scheme eligibility, quick actions, season crops, seasonal tasks
+│   │   ├── app-shell.tsx                 # Sidebar navigation (8 nav items), mobile menu overlay, auth guard, logout, language switcher
+│   │   ├── globals.css                   # Design tokens, liquid glass classes, utility classes, mobile responsive rules
+│   │   ├── mobile.css                    # Mobile-first responsive rules: touch targets, safe-area, font sizing
+│   │   ├── login.css                     # Login page background animation (desktop + mobile)
 │   │   ├── login/page.tsx                # Login — email/password + phone OTP with glass card
 │   │   ├── register/page.tsx             # Registration form
 │   │   ├── chatbot/page.tsx              # AI chat — message list, input, language-aware
 │   │   ├── disease-scanner/page.tsx      # Leaf upload, preview, results display
-│   │   ├── market/page.tsx               # Crop selector, forecast slider, Recharts chart
+│   │   ├── market/page.tsx               # Crop selector, real-time mandi prices, table + chart
+│   │   ├── weather/page.tsx              # GPS weather, spray advisory, 24h hourly forecast
+│   │   ├── calendar/page.tsx             # Week-by-week crop timeline with expandable cards
+│   │   ├── schemes/page.tsx              # Govt scheme eligibility checker
+│   │   ├── fertilizer/page.tsx           # NPK calculator with stage-wise schedule
+│   │   ├── tools/page.tsx                # Crop Advisor + Risk Calculator + Yield Estimator (3 tabs)
 │   │   ├── feedback/page.tsx             # Feature selector, star rating, comment
 │   │   └── profile/page.tsx              # Farm details form — get/save/update
 │   │
 │   ├── src/components/
 │   │   ├── glass-filter.tsx             # Global SVG filter (#glass-distortion) for refraction
-│   │   ├── liquid-glass.tsx             # LiquidGlass wrapper component
-│   │   ├── FloatingChat.tsx             # Persistent chat bubble — appears on every page
 │   │   └── ui/
 │   │       └── apple-tahoe-liquid-glass-button.tsx  # macOS dock-style glass button
 │   │
@@ -423,7 +518,10 @@ Trinetra-Agro-AI/
 │   │   ├── types.ts                      # TypeScript interfaces for all data shapes
 │   │   └── utils.ts                      # cn() — class name merger (clsx + tailwind-merge)
 │   │
-│   ├── middleware.ts                     # Next.js middleware — redirects unauthenticated users
+│   ├── public/
+│   │   ├── bg.jpg                        # Farm field background image (login/register pages)
+│   │   ├── manifest.json                 # PWA manifest — installable on home screen
+│   │   └── sw.js                         # Service worker — caches static assets for offline use
 │   ├── package.json                      # Dependencies: next, react, recharts, framer-motion, lucide
 │   ├── tailwind.config.ts                # Tailwind v4 configuration
 │   └── vercel.json                       # Vercel deployment settings
@@ -475,10 +573,21 @@ Every URL the frontend can call, what it expects, and what it returns.
 
 | Method | Path | What It Does | Requires Login? |
 |--------|------|-------------|:---:|
-| `POST` | `/ai/market` | Generate a crop price forecast. Body: `{crop: string, days: int}`. Calls data.gov.in for real prices, falls back to synthetic data. Returns `{current_price, trend, predictions[], recommendation}`. | No |
-| `POST` | `/ai/disease` | Analyze a leaf image for disease. Multipart form: `image` (file) + `crop_type` (string). Runs through MobileNetV2 or fallback lookup. Returns `{disease, confidence, severity, treatment}`. | No |
-| `POST` | `/chat/send` | Send a message to the AI chatbot. Body: `{message, session_id, language}`. Returns `{reply, session_id}`. Chat history is maintained server-side per session. | No |
-| `POST` | `/chat/clear` | Clear the chat history for a session. Body: `{session_id}`. | No |
+| `POST` | `/ai/market` | Generate a crop price forecast. Calls data.gov.in for real prices, falls back to synthetic data. | No |
+| `POST` | `/ai/disease` | Analyze a leaf image for disease. Multipart form. Runs through MobileNetV2 or fallback lookup. | No |
+| `POST` | `/chat/send` | Send a message to the AI chatbot. Body: `{message, session_id, language}`. | No |
+| `POST` | `/chat/clear` | Clear the chat history for a session. | No |
+
+### Live Data — `/mandi/*`, `/weather/*`, `/calendar/*`, `/schemes/*`, `/fertilizer/*`
+
+| Method | Path | What It Does | Requires Login? |
+|--------|------|-------------|:---:|
+| `GET` | `/mandi/prices` | Fetch current mandi prices with trend analysis. Query: `?crop=Rice&state=AP&district=Kurnool`. Returns `{current_price, trend, recommendations}`. | No |
+| `GET` | `/weather/spray-advisory` | Get spray/no-spray decision for today. Query: `?lat=15.82&lon=78.03`. Returns `{can_spray, reason, next_safe_window}`. | No |
+| `GET` | `/weather/forecast` | Get 48-hour hourly weather. Same query params. | No |
+| `GET` | `/calendar/generate` | Generate week-by-week crop calendar. Query: `?crop=Cotton&sowing_date=2025-06-18`. | No |
+| `GET` | `/schemes/check` | Check govt scheme eligibility. Body: `{state, land_size_acres, crop_type}`. | No |
+| `GET` | `/fertilizer/calculate` | Calculate exact NPK dosage. Query: `?crop=Cotton&soil=Black+Cotton&target_yield=Good`. | No |
 
 ### Data — `/profile/*`, `/feedback`
 
@@ -526,10 +635,12 @@ This application integrates with four external services. Three of them have grac
 
 | Service | What It Provides | Cost | What Happens If It's Down |
 |---------|-----------------|------|--------------------------|
-| **Supabase** | PostgreSQL database hosting | Free (500MB) | **Nothing works.** The backend validates the database connection on startup (the `lifespan` function in `main.py` runs `SELECT 1`). All data — users, profiles, disease reports, market predictions, feedback — lives here. |
-| **OpenRouter** | Access to the Gemma 4 AI model | Free | The chatbot falls back to hardcoded responses. Users still get farming advice, but it's generic keyword-matched answers rather than AI-generated, context-aware responses. The fallback message clearly states the service is unavailable. |
-| **data.gov.in** | Real-time mandi crop prices from Indian markets | Free (registration required) | Market predictions switch to synthetic data. The forecast is still generated using a deterministic random seed, so it's consistent across calls on the same day, but the prices are simulated rather than actual market data. |
-| **Fast2SMS** | SMS delivery for OTP codes | Paid (~₹0.25/SMS) | If the SMS gateway fails, the 6-digit OTP is printed to the server console and marked as delivered anyway (used for development/testing). In production, this should return a proper error. |
+| **Supabase** | PostgreSQL database hosting | Free (500MB) | **Nothing works.** The backend validates the database connection on startup. All data — users, profiles, disease reports, market predictions, feedback — lives here. |
+| **OpenRouter** | Access to the Gemma 4 AI model | Free | The chatbot falls back to hardcoded responses. Users still get farming advice, but it's generic keyword-matched answers rather than AI-generated, context-aware responses. |
+| **data.gov.in** | Real-time mandi crop prices from Indian markets | Free (registration required) | Market predictions switch to realistic synthetic data with mandi names, price variation, and trend analysis. |
+| **Open-Meteo** | Live weather forecasts worldwide | Free (no API key) | Weather widget shows a location-permission prompt. Spray advisor is unavailable. Crop calendar still works. |
+| **Fast2SMS** | SMS delivery for OTP codes | Paid (~₹0.25/SMS) | If the SMS gateway fails, the 6-digit OTP is printed to the server console (development mode). In production, this should return a proper error. |
+| **Cloudflare Tunnel** | Free HTTPS for the VPS backend | Free | The Vercel frontend can't connect to the backend (HTTP blocked by browsers). The tunnel auto-restarts via PM2. |
 
 The critical path: the frontend talks to the backend, the backend talks to Supabase. If Supabase is unavailable, the health check fails and no requests can be served. OpenRouter, data.gov.in, and Fast2SMS are all "nice to have" — the core app degrades gracefully without them.
 
@@ -546,21 +657,25 @@ These features have complete frontend pages, backend endpoints, service logic, d
 - **AI Chatbot** — OpenRouter integration with context-aware prompts, conversation memory, multilingual responses, graceful fallback
 - **Disease Scanner** — MobileNetV2 inference (when TensorFlow is installed), Grad-CAM heatmap generation, severity classification, treatment recommendations, graceful fallback for 5 crops
 - **Market Intelligence** — real data.gov.in API integration with trend analysis, buy/sell/hold recommendations, Recharts visualization, synthetic fallback
+- **Weather & Spray Advisory** — live Open-Meteo weather with GPS location, spray/no-spray decisions using four safety rules, 48-hour hourly forecast
+- **Crop Calendar** — ICAR-based week-by-week timeline for 7 crops, irrigation/fertilizer/pest/tip for each stage, auto-detects current day's stage
+- **Government Scheme Checker** — 8 central government schemes with real benefit amounts, eligibility matching, document checklists, application links
+- **Fertilizer Calculator** — ICAR-recommended NPK doses for 7 crops, exact Urea/DAP/MOP bags needed, stage-wise schedule, subsidised cooperative pricing
 - **Farm Profile** — full CRUD (Create, Read, Update) with personalized chatbot context
 - **Feedback System** — per-feature star ratings with optional comments, stored in database
 - **Liquid Glass UI** — SVG filter refraction, backdrop-filter blur, multi-layer DOM structure, custom design tokens
+- **PWA (Progressive Web App)** — installable on home screen, manifest.json with icons, service worker for offline caching
+- **Trilingual Support** — 100+ hand-translated strings in English, Hindi, and Telugu across all pages
 
 ### 🚧 In Progress or Planned
 
-These features have database tables and TypeScript types defined, but no backend endpoints or frontend pages yet:
+These features are on the roadmap but not yet built:
 
-- **Risk Assessment** — crop failure probability prediction using XGBoost
-- **Yield Prediction** — harvest quantity estimation using Random Forest + XGBoost ensemble
-- **Irrigation Planning** — daily watering schedules optimized for crop, soil, and weather
-- **Profit Analysis** — cost vs. revenue projections with ROI calculation
-- **Crop Advisor** — personalized crop recommendations using KMeans clustering + cosine similarity
-- **Voice Input/Output** — speech-to-text via Whisper, text-to-speech via gTTS (schemas exist, implementation removed during refactoring)
-- **Grad-CAM Heatmap Display** — the heatmap is computed in inference but not rendered in the UI
+- **Voice Input/Output** — speech-to-text via browser SpeechRecognition API, text-to-speech via gTTS (schemas exist, frontend component planned)
+- **Grad-CAM Heatmap Display** — the heatmap is computed during disease inference but not yet rendered in the UI (the base64 image data is available in the API response)
+- **Mandi Price Comparison** — compare prices across multiple nearby mandis, calculate transport cost, recommend the best mandi to sell at
+- **WhatsApp Share Button** — one-tap share of today's crop price to WhatsApp groups (farmers already share prices on WhatsApp daily)
+- **Email Alerts** — notify users when a crop's price crosses a threshold they've set
 
 ---
 
@@ -672,17 +787,22 @@ The model was `openrouter/free` — OpenRouter's automatic free model router. Th
 | Problem | Likely Cause | Solution |
 |---------|-------------|----------|
 | `ModuleNotFoundError: No module named 'xyz'` | Missing Python package | Run `pip install -r backend/requirements.txt` from the `backend/` folder |
-| Login returns "Invalid email or password" with the demo account | Database not seeded | Run `npx supabase db push` to apply migrations, which create the demo user |
+| Login returns "Invalid email or password" with the demo account | Database not seeded or demo user not in Supabase | The demo user is created via Supabase migration. If using the VPS, register a new account at /register |
 | Chatbot only gives generic answers | OpenRouter API key missing or invalid | Check that `OPENROUTER_API_KEY` in `.env` starts with `sk-or-v1-`. Get a free key at openrouter.ai/keys |
 | Chatbot stopped working after server restart | Chat history is stored in memory only | This is expected — history clears on restart. Start a new conversation |
-| Disease scanner returns "Not Found" or only works for 5 crops | TensorFlow not installed or model not found | Install TensorFlow with `pip install tensorflow` (requires ~500MB disk space). Download the trained model from the Kaggle training notebook output |
-| Market predictions show the same prices every time | data.gov.in API key missing | Register at data.gov.in for a free API key and add it to `.env` as `DATA_GOV_API_KEY` |
+| Disease scanner returns "Not Found" or only works for 5 crops | TensorFlow not installed or model not found | Install TensorFlow with `pip install tensorflow` (requires ~500MB disk space). The model file must be at `ai_engine/disease_detection/models/mobilenetv2_plantvillage.keras` |
+| Market predictions show the same prices every time | data.gov.in API key missing or API unreachable | The government API is slow from some cloud datacenters. A realistic fallback with actual Agmarknet price ranges and real mandi names kicks in automatically |
+| Weather widget shows "Allow location" | Browser location permission not granted | Click the location prompt in your browser. On mobile, GPS must be enabled |
+| Fertilizer calculator says "No data returned" | API endpoint not reached | Check VPS backend is running (`pm2 list` on the server). Verify nginx has the `/fertilizer/` proxy rule |
 | OTP codes never arrive on your phone | Fast2SMS not configured or has no credits | Check the server terminal — the OTP code is printed there for development. Fast2SMS is a paid service |
-| "Network Error" when using any feature | Backend is not running | Make sure you ran `python -m uvicorn backend.main:app --reload --port 8000` in a terminal. You should see "Uvicorn running on..." |
+| "Network Error" when using any feature | Backend is not running | Make sure you ran `python -m uvicorn backend.main:app --reload --port 8000` or on the VPS: `pm2 restart backend` |
 | Page looks broken or unstyled | Browser cache | Do a hard refresh: `Ctrl + Shift + R` (Windows) or `Cmd + Shift + R` (Mac) |
-| "Failed to compile" when running `npm run dev` | Missing frontend dependencies | Run `npm install` from the `frontend-next/` folder |
-| CORS error in browser console | Backend `allowed_origins` doesn't include `localhost:3000` | The default config includes `http://localhost:3000`. If you changed ports, update `ALLOWED_ORIGINS` in your `.env` |
+| CORS error in browser console | Backend `allowed_origins` doesn't include the frontend domain | Update `ALLOWED_ORIGINS` in `.env` to include the Vercel domain and Cloudflare tunnel URL |
+| \(Vercel only\) "Registration failed — email already exists" | `NEXT_PUBLIC_API_URL` not set | Set `NEXT_PUBLIC_API_URL` in Vercel project settings to the Cloudflare tunnel URL |
+| \(VPS only\) Login redirects back to login page | Stale cookies from previous deploys | Clear browser cookies for the domain (F12 → Application → Cookies → Delete All) |
 | `git clone` fails | Git not installed | Download the project as a ZIP from the GitHub page (green "Code" button → Download ZIP) |
+| App not installable on phone | PWA manifest or service worker missing | Verify `public/manifest.json` and `public/sw.js` exist. The service worker is registered in `layout.tsx` |
+| Government schemes show 0 eligible | API request body wrong format | POST to `/schemes/check` requires `{state, land_size_acres, crop_type}` — check field names match |
 
 ---
 

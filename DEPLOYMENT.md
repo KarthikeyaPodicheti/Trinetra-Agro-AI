@@ -1,24 +1,32 @@
-# Deployment Guide — Vercel + Render (Free)
+# Deployment Guide — Vercel + DigitalOcean VPS + Cloudflare Tunnel
 
 ## Architecture
 
 ```
 User → https://trinetra-agro.vercel.app (Vercel, free)
                   │
-          Next.js Frontend (always-on)
+          Next.js Frontend (always-on, global CDN)
                   │
-          API calls via NEXT_PUBLIC_API_URL
+          API calls via Cloudflare Tunnel URL
+          (NEXT_PUBLIC_API_URL)
                   │
                   ▼
-        https://trinetra-backend.onrender.com (Render, free)
+    https://shirts-flexible-michelle-classes.trycloudflare.com
                   │
-          FastAPI Backend (spins down after 15 min idle)
+           Cloudflare Tunnel (cloudflared, free)
+                  │
+                  ▼
+          DigitalOcean VPS (Docker)
+          │
+          ├── nginx:80 (reverse proxy)
+          ├── backend:8000 (FastAPI via uvicorn)
+          └── Never cold-starts — always-on VPS
                   │
                   ▼
           Supabase PostgreSQL (always-on, free)
 ```
 
-**Cold start behavior**: After 15 minutes of inactivity, Render spins down the backend. The first request after idle takes ~30 seconds to wake up. Subsequent requests are fast. Frontend stays instant on Vercel.
+**No cold start**: Unlike Render, the DigitalOcean VPS runs 24/7 — the backend is always warm. Zero delay on first request.
 
 ---
 
@@ -28,7 +36,8 @@ User → https://trinetra-agro.vercel.app (Vercel, free)
 |---------|-------|------|
 | GitHub | github.com | Free |
 | Vercel | vercel.com (login with GitHub) | Free |
-| Render | render.com (login with GitHub) | Free |
+| DigitalOcean | digitalocean.com | $6/month (GitHub Student credits available) |
+| Cloudflare | cloudflare.com | Free (Tunnel feature) |
 | Supabase | supabase.com | Free (already set up) |
 
 ---
@@ -53,111 +62,151 @@ git push -u origin main
 4. Set **Framework Preset** to `Next.js`
 5. Add this environment variable:
 
-| Variable | Value |
-|----------|-------|
-| `NEXT_PUBLIC_API_URL` | `https://trinetra-backend.onrender.com` |
+   | Variable | Value |
+   |----------|-------|
+   | `NEXT_PUBLIC_API_URL` | Your Cloudflare Tunnel URL (see Step 5) |
 
 6. Click **Deploy**
-7. After deploy, Vercel gives you a URL like `https://trinetra-agro-xyz.vercel.app`
+7. After deploy, Vercel gives you a URL like `https://trinetra-agro.vercel.app`
+
+The `frontend-next/vercel.json` config is already set up for this.
 
 ---
 
-## Step 3: Deploy Backend to Render (10 minutes)
+## Step 3: Set Up the DigitalOcean VPS (15 minutes)
 
-1. Go to [render.com](https://render.com) → **New+** → **Web Service**
-2. Connect your GitHub repo
-3. Configure:
+### 3a — Create a Droplet
 
-| Setting | Value |
-|---------|-------|
-| **Name** | `trinetra-backend` |
-| **Root Directory** | (leave empty — repo root) |
-| **Runtime** | `Docker` |
-| **Build Command** | (leave empty — uses Dockerfile) |
-| **Start Command** | (leave empty — uses CMD from Dockerfile) |
-| **Instance Type** | **Free** |
-| **Health Check Path** | `/health` |
+1. Go to [cloud.digitalocean.com](https://cloud.digitalocean.com) → Create → Droplet
+2. Choose **Ubuntu 24.04 LTS**
+3. Plan: **Basic** → **Regular with SSD** → **$6/month** (1 GB RAM, 1 CPU, 25 GB SSD)
+4. Add your SSH key for passwordless login
+5. Create the droplet — note the IP address
 
-4. Add these environment variables:
+### 3b — Install Docker
 
-| Variable | Value |
-|----------|-------|
-| `ENVIRONMENT` | `production` |
-| `DATABASE_URL` | Your Supabase PostgreSQL connection string |
-| `OPENROUTER_API_KEY` | `sk-or-v1-17ba...` |
-| `OPENROUTER_MODEL` | `google/gemma-4-26b-a4b-it:free` |
-| `SECRET_KEY` | Generate with `openssl rand -hex 32` |
-| `JWT_SECRET` | Same as SECRET_KEY |
+SSH into the VPS and run:
 
-5. Click **Deploy Web Service**
-6. After deploy, Render gives you a URL like `https://trinetra-backend.onrender.com`
+```bash
+# Update system
+apt update && apt upgrade -y
+
+# Install Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sh get-docker.sh
+
+# Install Docker Compose plugin
+apt install -y docker-compose-plugin
+```
+
+### 3c — Clone the repo and start services
+
+```bash
+git clone https://github.com/YOUR_USERNAME/trinetra-agro-ai.git
+cd trinetra-agro-ai/Trinetra-Agro-AI
+
+# Create .env with all secrets
+cat > .env << 'EOF'
+ENVIRONMENT=production
+DATABASE_URL=postgresql+asyncpg://postgres.YOUR_REF:YOUR_PASSWORD@aws-1-ap-southeast-2.pooler.supabase.com:6543/postgres
+SECRET_KEY=your-openssl-generated-secret
+OPENROUTER_API_KEY=sk-or-v1-xxxxxxxx
+OPENROUTER_MODEL=google/gemma-4-26b-a4b-it:free
+DATA_GOV_API_KEY=your-data-gov-key
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost,https://trinetra-agro.vercel.app
+EOF
+
+# Start with Docker Compose
+docker compose up -d
+
+# Verify everything is running
+docker compose ps
+```
+
+The `Dockerfile`, `nginx.conf`, and `docker-compose.yml` are already configured in the repo. Nginx runs on port 80 and routes:
+
+| Path | Destination |
+|------|-------------|
+| `/api`, `/auth`, `/ai`, `/chat`, `/profile`, `/feedback`, `/health`, `/docs` | Backend (`backend:8000`) |
+| `/` (everything else) | Frontend (`frontend:3000`) |
+
+### 3d — Install PM2 for cloudflared auto-restart
+
+```bash
+# Install Node.js + PM2
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+apt install -y nodejs
+npm install -g pm2
+
+# Start cloudflared via PM2 (so it auto-restarts on reboot)
+pm2 start cloudflared -- tunnel --url http://localhost:80
+pm2 save
+pm2 startup  # Follow the instructions to enable startup
+```
 
 ---
 
-## Step 4: Connect Frontend to Backend
+## Step 4: Install & Configure Cloudflare Tunnel (5 minutes)
 
-After both are deployed:
+**Why this is needed**: Vercel serves pages over HTTPS, but the VPS backend is plain HTTP. Modern browsers block HTTP requests from HTTPS pages (mixed content policy). Cloudflare Tunnel wraps the HTTP backend in a free HTTPS endpoint.
+
+1. Install `cloudflared` on the VPS:
+
+   ```bash
+   curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared
+   chmod +x /usr/local/bin/cloudflared
+   ```
+
+2. Start the tunnel (connected via PM2 — see Step 3d):
+
+   ```bash
+   cloudflared tunnel --url http://localhost:80
+   ```
+
+3. The tunnel prints a URL like:
+   ```
+   https://shirts-flexible-michelle-classes.trycloudflare.com
+   ```
+
+4. Copy this URL and update the **Vercle environment variable** `NEXT_PUBLIC_API_URL` to this URL. Also update `frontend-next/src/lib/api.ts`'s fallback URL.
+
+---
+
+## Step 5: Connect Frontend to Backend
 
 1. Go to Vercel dashboard → Your project → **Settings** → **Environment Variables**
-2. Update `NEXT_PUBLIC_API_URL` to your Render URL: `https://trinetra-backend.onrender.com`
+2. Set `NEXT_PUBLIC_API_URL` to your Cloudflare Tunnel URL: `https://shirts-flexible-michelle-classes.trycloudflare.com`
 3. Go to **Deployments** → trigger a **Redeploy**
 
 ---
 
-## Step 5: Custom Domain (Optional)
+## Step 6: Apply Database Migrations
 
-**Vercel**: Settings → Domains → add your domain. Vercel handles SSL automatically.
+```bash
+# From the Trinetra-Agro-AI/ directory, with Supabase CLI installed:
+npx supabase db push
+```
 
-**Render**: Settings → Custom Domain → add domain. Render provides SSL via Let's Encrypt.
-
----
-
-## Free Tier Limitations
-
-| Platform | Limit | Impact |
-|----------|-------|--------|
-| **Vercel** | 100 GB bandwidth/month | Fine for personal/demo use |
-| **Vercel** | 6000 build minutes/month | Plenty |
-| **Render** | Backend sleeps after **15 min idle** | First request after idle = ~30s cold start |
-| **Render** | 750 hours/month (≈24h/day, 31 days) | Runs continuously if traffic every <15 min |
-| **Render** | 100 GB outbound bandwidth | Fine |
-| **Supabase** | 500 MB database | Plenty |
-| **Supabase** | 50,000 monthly active users | More than enough |
-
----
-
-## Handling the Cold Start
-
-**Option A: Uptime monitor (free)**
-
-Use [uptimerobot.com](https://uptimerobot.com) (free tier) to ping Render's `/health` endpoint every 14 minutes. This keeps the backend warm indefinitely. UptimeRobot free tier monitors 5 URLs at 5-minute intervals.
-
-**Option B: Accept it**
-
-Add a loading state in the frontend. On first load, show "Waking up the AI engine..." while the backend boots. This takes ~30 seconds once, then fast for the next 15 minutes.
-
-**Option C: Render Blaze ($7/month)**
-
-Upgrade Render to the Starter plan ($7/month) for:
-- Zero cold starts
-- Always-on
-- 512MB RAM
-- Dedicated CPU
-- Priority support
+This creates all 9 tables in your Supabase PostgreSQL database and seeds the demo user (`demo@farm.com` / `demo123456`).
 
 ---
 
 ## Updating After Deployment
 
 ```bash
+# On your local machine:
 git add .
-git commit -m "fix: update something"
+git commit -m "feat: update something"
 git push origin main
+
+# On the VPS:
+cd trinetra-agro-ai/Trinetra-Agro-AI
+git pull origin main
+docker compose down
+docker compose up -d --build
 ```
 
 **Vercel** auto-deploys on push to main branch (detects changes in `frontend-next/`).
-
-**Render** auto-deploys on push to main branch (detects Dockerfile changes).
 
 ---
 
@@ -165,11 +214,11 @@ git push origin main
 
 | Check | URL | Expected |
 |-------|-----|----------|
-| Frontend | `https://trinetra-agro-xyz.vercel.app` | Login page loads |
-| Backend health | `https://trinetra-backend.onrender.com/health` | `{"status":"healthy"}` |
-| Backend docs | `https://trinetra-backend.onrender.com/docs` | Swagger UI |
+| Frontend | `https://trinetra-agro.vercel.app` | Login page loads |
+| Backend health (via tunnel) | `https://shirts-flexible-michelle-classes.trycloudflare.com/health` | `{"status":"healthy"}` |
+| Backend docs (via tunnel) | `https://shirts-flexible-michelle-classes.trycloudflare.com/docs` | Swagger UI |
 | Login | Frontend → login with `demo@farm.com` | Redirects to dashboard |
-| AI Advisor | Frontend → fill form → submit | Returns recommendations |
+| Disease Scanner | Frontend → upload leaf image | Returns disease diagnosis |
 
 ---
 
@@ -177,25 +226,41 @@ git push origin main
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| Frontend loads but API calls fail | `NEXT_PUBLIC_API_URL` wrong | Check env var in Vercel dashboard |
-| "Network Error" on login | Backend is sleeping | Wait 30s and retry, or set up uptime monitor |
-| Backend deploy fails | Docker build timeout on free tier | Free tier has 5 min build limit; if exceeded, upgrade or remove heavy deps |
-| Auth not working | `SECRET_KEY` mismatch | Ensure same key on Render and in deployed config |
-| CORS errors | Backend `allowed_origins` doesn't include Vercel URL | Update `allowed_origins` in `backend/core/config.py` or set `ALLOWED_ORIGINS` env var |
+| Frontend loads but API calls fail | Cloudflare Tunnel URL wrong or tunnel not running | On VPS: `pm2 status` to check cloudflared, then update `NEXT_PUBLIC_API_URL` in Vercel |
+| "Mixed Content" error in browser | Tunnel is down, HTTP being used from HTTPS page | Restart cloudflared: `pm2 restart cloudflared` |
+| Backend returns 502 | Docker containers not running | On VPS: `docker compose ps` — restart with `docker compose up -d` |
+| Auth not working | `SECRET_KEY` mismatch | Ensure same key on VPS `.env` and in deployed config |
+| CORS errors | Backend `ALLOWED_ORIGINS` doesn't include Vercel URL | Update `ALLOWED_ORIGINS` in VPS `.env` and restart: `docker compose restart` |
+| Disease scanner not working | TensorFlow not installed in Docker container | SSH into VPS, exec into container: `docker compose exec backend pip install tensorflow --break-system-packages` then restart |
+| Chatbot gives generic fallback answers | OpenRouter API key missing or wrong model | Check `OPENROUTER_API_KEY` and `OPENROUTER_MODEL=google/gemma-4-26b-a4b-it:free` in VPS `.env` |
+| Database connection fails | Wrong pooler host in `DATABASE_URL` | Use Supabase's IPv4-compatible pooler: `aws-1-ap-southeast-2.pooler.supabase.com:6543` (transaction mode) |
 
 ---
 
-## File: `frontend-next/vercel.json`
+## Free Tier Costs Breakdown
 
-Create this file in the repo root for Vercel configuration:
+| Service | Cost | Details |
+|---------|------|---------|
+| Vercel | Free | 100 GB bandwidth, 6000 build minutes/month |
+| DigitalOcean | $6/month | 1 GB RAM, 1 CPU, 25 GB SSD |
+| Cloudflare Tunnel | Free | Unlimited bandwidth |
+| Supabase | Free | 500 MB database, 50,000 monthly active users |
+| **Total** | **$6/month** | Can be $0 with GitHub Student credits |
 
-```json
-{
-  "buildCommand": "cd frontend-next && npm run build",
-  "outputDirectory": "frontend-next/.next",
-  "installCommand": "cd frontend-next && npm install",
-  "framework": "nextjs"
-}
+---
+
+## Alternative: Local Development (No Cloud Needed)
+
+For local testing without deploying:
+
+```bash
+# Terminal 1 — Start backend
+cd Trinetra-Agro-AI
+python -m uvicorn backend.main:app --reload --port 8000
+
+# Terminal 2 — Start frontend
+cd Trinetra-Agro-AI/frontend-next
+npm run dev
+
+# Open http://localhost:3000
 ```
-
-> **Note**: In the Vercel dashboard, set **Root Directory** to `frontend-next` instead of using the above config. The vercel.json above assumes repo-root setup. The simpler approach is setting Root Directory in the UI.

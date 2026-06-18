@@ -19,6 +19,7 @@ const t = {
   cropAdvice: { English: "Crop Advice", Hindi: "फसल सलाह", Telugu: "పంట సలహా" },
   scanDisease: { English: "Scan Disease", Hindi: "रोग स्कैन", Telugu: "వ్యాధి స్కాన్" },
   marketPrices: { English: "Market Prices", Hindi: "बाज़ार भाव", Telugu: "మార్కెట్ ధరలు" },
+  weather: { English: "Weather", Hindi: "मौसम", Telugu: "వాతావరణం" },
   systemStatus: { English: "System Status", Hindi: "सिस्टम स्थिति", Telugu: "సిస్టమ్ స్థితి" },
   online: { English: "Online", Hindi: "ऑनलाइन", Telugu: "ఆన్‌లైన్" },
   allNominal: { English: "All systems nominal", Hindi: "सभी सिस्टम सामान्य", Telugu: "అన్ని సిస్టమ్‌లు సాధారణం" },
@@ -108,6 +109,19 @@ const t = {
   state: { English: "State", Hindi: "राज्य", Telugu: "రాష్ట్రం" },
   district: { English: "District", Hindi: "जिला", Telugu: "జిల్లా" },
   profileSaved: { English: "Profile saved!", Hindi: "प्रोफ़ाइल सहेज ली गई!", Telugu: "ప్రొఫైల్ సేవ్ చేయబడింది!" },
+  // Crop Calendar
+  cropCalendar: { English: "Crop Calendar", Hindi: "फसल कैलेंडर", Telugu: "పంట క్యాలెండర్" },
+  cropCalendarDesc: { English: "Week-by-week guide from sowing to harvest with irrigation, fertilizer, and pest advice.", Hindi: "बुवाई से कटाई तक सप्ताह-दर-सप्ताह मार्गदर्शिका — सिंचाई, उर्वरक और कीट सलाह के साथ।", Telugu: "నాట్ల నుండి పంట వరకు వారం-వారం గైడ్ — నీటిపారుదల, ఎరువు మరియు చీడ సలహాతో." },
+  sowingDate: { English: "Sowing Date", Hindi: "बुवाई तिथि", Telugu: "నాట్ల తేదీ" },
+  generateCalendar: { English: "Generate Calendar", Hindi: "कैलेंडर बनाएं", Telugu: "క్యాలెండర్ రూపొందించండి" },
+  expectedHarvest: { English: "Expected Harvest", Hindi: "अपेक्षित फसल", Telugu: "అంచనా పంట" },
+  totalWeeks: { English: "Total Weeks", Hindi: "कुल सप्ताह", Telugu: "మొత్తం వారాలు" },
+  week: { English: "Week", Hindi: "सप्ताह", Telugu: "వారం" },
+  irrigation: { English: "Irrigation", Hindi: "सिंचाई", Telugu: "నీటిపారుదల" },
+  pestManagement: { English: "Pest Management", Hindi: "कीट प्रबंधन", Telugu: "చీడ నిర్వహణ" },
+  tip: { English: "Tip", Hindi: "सुझाव", Telugu: "చిట్కా" },
+  crop: { English: "Crop", Hindi: "फसल", Telugu: "పంట" },
+  loading: { English: "Loading...", Hindi: "लोड हो रहा है...", Telugu: "లోడ్ అవుతోంది..." },
 } as const;
 
 export type TKey = keyof typeof t;
