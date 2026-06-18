@@ -81,7 +81,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
-              className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`w-full text-left px-3 py-3 rounded-lg text-sm font-medium transition-colors ${
                 isActive ? "text-[var(--color-brand-deep)]" : "text-gray-600"
               }`}
               style={{ background: isActive ? "var(--color-brand-lighter)" : "transparent" }}
@@ -99,12 +99,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex gap-1">
             {(["English", "Hindi", "Telugu"] as Lang[]).map((l) => (
               <button key={l} onClick={() => setLang(l)}
-                className={`flex-1 text-xs py-1.5 rounded-md font-medium transition-colors ${lang === l ? "bg-green-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+                className={`flex-1 text-sm py-2.5 rounded-md font-medium transition-colors ${lang === l ? "bg-green-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
               >{l === "English" ? "EN" : l === "Hindi" ? "हि" : "తె"}</button>
             ))}
           </div>
         </div>
-        <button onClick={handleLogout} className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium" style={{ color: "var(--color-error)" }}>
+        <button onClick={handleLogout} className="w-full text-left px-3 py-3 rounded-lg text-sm font-medium" style={{ color: "var(--color-error)" }}>
           {'\u{1F6AA}'}  {T("logout")}
         </button>
       </div>

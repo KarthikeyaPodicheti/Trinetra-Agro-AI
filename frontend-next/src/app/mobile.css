@@ -1,19 +1,110 @@
 
 
-/* MOBILE-FIRST RESPONSIVE RULES */
-html { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+/* MOBILE-FIRST RESPONSIVE RULES — Apple HIG + Fitts' Law Compliant */
+/* Minimum touch target: 44pt (iOS) / 48dp (Android) — Apple Human Interface Guidelines */
+html {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Prevent horizontal overflow at the root level */
+body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* All containers must stay within viewport */
+.app-shell, .app-shell > div, main, .min-h-screen {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* Force all interactive elements to meet minimum touch target size */
 @media (max-width: 768px) {
-  button, a, input, select, textarea, [role=button] { min-height: 44px; }
-  .liquid-glass-btn, .btn-primary, .btn-secondary, button[type=submit] { min-height: 48px; padding-top: 0.75rem; padding-bottom: 0.75rem; }
-  input, select, textarea, button { font-size: 16px !important; }
+  /* Apple HIG minimum: 44x44px */
+  button, a[role="button"], input, select, textarea, [role="button"] {
+    min-height: 44px;
+  }
+
+  /* Primary CTAs get 48px minimum — Fitts' Law for thumb zone */
+  .liquid-glass-btn, button[type="submit"], .btn-primary, .btn-secondary {
+    min-height: 48px;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+  /* Tiny sidebar buttons (menu toggle, close, language switchers) */
+  aside button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Language switcher buttons specifically */
+  aside .flex.gap-1 button {
+    min-height: 44px;
+    padding: 0.5rem 0.75rem;
+    font-size: 14px;
+  }
+
+  /* Sidebar close button (X) */
+  aside .flex.justify-end button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Prevent iOS Safari from zooming into form fields */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+
+  /* Reduce desktop padding on mobile */
   .p-6 { padding: 1rem; }
   .p-8 { padding: 1.25rem; }
-  .grid-cols-4 { grid-template-columns: repeat(2, 1fr); }
-  .max-w-sm, .max-w-md, .max-w-lg, .max-w-2xl { max-width: 100%; }
-  aside.liquid-glass-sidebar { width: 72vw; max-width: 280px; }
-  input:focus, textarea:focus, select:focus { scroll-margin-bottom: 120px; }
-  form { padding-bottom: env(safe-area-inset-bottom, 20px); }
-  .floating-chat-bubble { width: 56px; height: 56px; bottom: 1rem; right: 1rem; }
-  .floating-chat-panel { width: calc(100vw - 2rem); max-width: 380px; max-height: 70vh; bottom: 4.5rem; right: 0.5rem; }
+
+  /* Grid: never more than 2 columns on mobile */
+  .grid-cols-4, .md\:grid-cols-4 { grid-template-columns: repeat(2, 1fr); }
+
+  /* Full-width cards on mobile */
+  .max-w-sm, .max-w-md, .max-w-lg, .max-w-2xl, .max-w-3xl, .max-w-4xl, .max-w-5xl, .max-w-6xl {
+    max-width: 100%;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  /* Mobile sidebar: narrower, easier to dismiss */
+  aside.liquid-glass-sidebar {
+    width: 75vw;
+    max-width: 300px;
+  }
+
+  /* Keyboard-safe spacing */
+  input:focus, textarea:focus, select:focus {
+    scroll-margin-bottom: 120px;
+  }
+
+  form {
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+  }
+
+  /* Floating chat widget — bigger tap target, safe area aware */
+  .floating-chat-bubble {
+    width: 56px;
+    height: 56px;
+    bottom: max(1rem, env(safe-area-inset-bottom));
+    right: max(1rem, env(safe-area-inset-right));
+  }
+
+  .floating-chat-panel {
+    width: calc(100vw - 2rem);
+    max-width: 380px;
+    max-height: 70vh;
+    bottom: 4.5rem;
+    right: max(0.5rem, env(safe-area-inset-right));
+  }
 }
-* { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+
+/* Hide the ugly tap highlight universally */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
