@@ -75,7 +75,7 @@ export default function FeedbackPage() {
           <div className="flex gap-2">
             {[1, 2, 3, 4, 5].map((n) => (
               <button key={n} type="button" onClick={() => setRating(n)}
-                className={`w-10 h-10 rounded-lg text-sm font-bold transition ${n <= rating ? "bg-green-100 text-green-700 border border-green-300" : "bg-gray-50 text-gray-400 border border-gray-200 hover:bg-gray-100"}`}>
+                className={`w-10 h-10 rounded-lg text-sm font-bold transition flex items-center justify-center ${n <= rating ? "bg-green-100 text-green-700 border border-green-300" : "bg-gray-50 text-gray-400 border border-gray-200 hover:bg-gray-100"}`}>
                 {n}
               </button>
             ))}

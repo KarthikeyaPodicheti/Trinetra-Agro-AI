@@ -1,6 +1,4 @@
-"""Schemas for chatbot and voice endpoints."""
-
-from typing import Optional
+"""Schemas for chatbot endpoints."""
 
 from pydantic import BaseModel, Field
 
@@ -14,13 +12,3 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     reply: str
     session_id: str
-
-
-class VoiceSynthesizeRequest(BaseModel):
-    text: str = Field(min_length=1, max_length=2000)
-    language: str = "en"
-
-
-class VoiceTranscribeResponse(BaseModel):
-    text: str
-    language: Optional[str] = None

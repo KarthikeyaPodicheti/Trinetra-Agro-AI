@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.auth.otp_service import generate_otp, send_otp_via_gateway, store_otp, verify_otp
+from backend.auth.otp_service import generate_otp, normalize_phone, send_otp_via_gateway, store_otp, verify_otp
 from backend.auth.service import login_user, refresh_access_token, register_user
 from backend.core.dependencies import get_current_user, get_db
 from backend.core.security import create_access_token, create_refresh_token
@@ -62,14 +62,15 @@ async def me(current_user: User = Depends(get_current_user)):
 @router.post("/send-otp")
 async def send_otp(data: SendOtpRequest, db: AsyncSession = Depends(get_db)):
     """Send OTP to phone. Phone must be registered."""
-    result = await db.execute(select(User).where(User.phone == data.phone))
+    phone = normalize_phone(data.phone)
+    result = await db.execute(select(User).where(User.phone == phone))
     user = result.scalar_one_or_none()
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phone not registered")
 
     otp = generate_otp()
     store_otp(data.phone, otp)
-    ok, detail = await send_otp_via_gateway(data.phone, otp)
+    ok, detail = await send_otp_via_gateway(data.phone, otp, settings.fast2sms_api_key)
 
     if not ok:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Failed to send OTP: {detail}")
@@ -88,7 +89,8 @@ async def verify_otp_login(data: VerifyOtpRequest, db: AsyncSession = Depends(ge
     if not ok:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=detail)
 
-    result = await db.execute(select(User).where(User.phone == data.phone))
+    phone = normalize_phone(data.phone)
+    result = await db.execute(select(User).where(User.phone == phone))
     user = result.scalar_one_or_none()
     if user is None or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")

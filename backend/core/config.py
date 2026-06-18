@@ -96,6 +96,8 @@ class Settings(BaseSettings):
             self.supabase_project_ref = _env_overrides["supabase_project_ref"]
         if _env_overrides.get("data_gov_api_key"):
             self.data_gov_api_key = _env_overrides["data_gov_api_key"]
+        if _env_overrides.get("fast2sms_api_key"):
+            self.fast2sms_api_key = _env_overrides["fast2sms_api_key"]
 
 
 @lru_cache(maxsize=1)

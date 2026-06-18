@@ -20,10 +20,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const NAV = [
     { label: `📊  ${T("dashboard")}`, path: "/" },
+    { label: `🛠️  ${T("farmTools")}`, path: "/tools" },
     { label: `🔬  ${T("diseaseScanner")}`, path: "/disease-scanner" },
     { label: `📈  ${T("marketIntelligence")}`, path: "/market" },
-    { label: `💬  ${T("aiChatbot")}`, path: "/chatbot" },
-    { label: `🧑‍🌾  Farm Profile`, path: "/profile" },
+    { label: `🤖  ${T("farmAssistant")}`, path: "/chatbot" },
+    { label: `🧑‍🌾  ${T("farmProfile")}`, path: "/profile" },
     { label: `📝  ${T("feedback")}`, path: "/feedback" },
   ];
 
@@ -64,7 +65,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <>
       <div className="px-5 py-6 border-b" style={{ borderColor: "var(--color-border-light)" }}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-brand-primary)] to-[var(--color-brand-accent)] flex items-center justify-center text-xl shrink-0">{'\u{1F4A1}'}</div>
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-brand-primary)] to-[var(--color-brand-accent)] flex items-center justify-center text-xl shrink-0">{'\uD83D\uDD31'}</div>
           <div>
             <h1 className="text-base font-bold" style={{ color: "var(--color-brand-deep)" }}>Trinetra Agro AI</h1>
             <p className="text-[10px]" style={{ color: "var(--color-brand-primary)" }}>Vision Beyond the Fields</p>
@@ -112,34 +113,35 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="app-shell" style={{ display: "flex", minHeight: "100vh" }}>
-      {/* Desktop sidebar */}
+    <div className="app-shell relative" style={{ display: "flex", minHeight: "100vh", maxWidth: "100vw", overflow: "hidden" }}>
+      {/* Desktop sidebar — flex child, visible only on md+ */}
       <aside className="hidden md:flex md:flex-col md:w-64 shrink-0 liquid-glass-sidebar"
         style={{ borderRight: "1px solid var(--color-border-light)" }}>
         {sidebarContent}
       </aside>
 
-      {/* Mobile sidebar overlay */}
+      {/* Mobile sidebar overlay — positioned absolutely, never in flex flow */}
       {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/30 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
+        <>
+          <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setSidebarOpen(false)} />
+          <aside className="fixed inset-y-0 left-0 z-50 w-[85vw] max-w-[320px] shadow-xl liquid-glass-sidebar"
+            style={{ borderRight: "1px solid var(--color-border-light)" }}>
+            <div className="flex justify-end p-3">
+              <button onClick={() => setSidebarOpen(false)} className="p-1 text-gray-500 hover:text-gray-700"><X size={20} /></button>
+            </div>
+            {sidebarContent}
+          </aside>
+        </>
       )}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 shadow-xl transform transition-transform duration-200 md:hidden liquid-glass-sidebar ${
-        sidebarOpen ? "translate-x-0" : "-translate-x-full"
-      }`} style={{ borderRight: "1px solid var(--color-border-light)" }}>
-        <div className="flex justify-end p-3">
-          <button onClick={() => setSidebarOpen(false)} className="p-1 text-gray-500 hover:text-gray-700"><X size={20} /></button>
-        </div>
-        {sidebarContent}
-      </aside>
 
-      {/* Main area */}
-      <div className="flex-1 flex flex-col min-h-screen" style={{ background: "transparent" }}>
+      {/* Main area — takes remaining space */}
+      <div className="flex-1 flex flex-col min-h-screen" style={{ background: "transparent", minWidth: 0, maxWidth: "100%" }}>
         <header className="md:hidden flex items-center justify-between px-4 py-3 border-b liquid-glass-header" style={{ borderColor: "var(--color-border-light)" }}>
           <button onClick={() => setSidebarOpen(true)} className="p-1 text-gray-600"><Menu size={22} /></button>
           <span className="text-sm font-bold" style={{ color: "var(--color-brand-primary)" }}>Trinetra Agro AI</span>
           <span className="text-xs text-gray-500 truncate max-w-[100px]">{user?.full_name || user?.email || ""}</span>
         </header>
-        <main className="flex-1 overflow-y-auto glass-bg">
+        <main className="flex-1 overflow-y-auto glass-bg" style={{ maxWidth: "100vw", overflowX: "hidden" }}>
           {children}
         </main>
       </div>

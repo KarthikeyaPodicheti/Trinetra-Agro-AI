@@ -71,6 +71,43 @@ const t = {
   submit: { English: "Submit", Hindi: "जमा करें", Telugu: "సమర్పించు" },
   // Language
   language: { English: "Language", Hindi: "भाषा", Telugu: "భాష" },
+  // New sidebar labels
+  farmTools: { English: "Farm Tools", Hindi: "कृषि उपकरण", Telugu: "వ్యవసాయ సాధనాలు" },
+  farmAssistant: { English: "Farm Assistant", Hindi: "कृषि सहायक", Telugu: "వ్యవసాయ సహాయకుడు" },
+  farmProfile: { English: "Farm Profile", Hindi: "कृषि प्रोफ़ाइल", Telugu: "వ్యవసాయ ప్రొఫైల్" },
+  // Tools page
+  toolsTitle: { English: "Farm Tools", Hindi: "कृषि उपकरण", Telugu: "వ్యవసాయ సాధనాలు" },
+  toolsDesc: { English: "Calculators and decision tools for your farm", Hindi: "आपके खेत के लिए कैलकुलेटर और निर्णय उपकरण", Telugu: "మీ పొలం కోసం కాలిక్యులేటర్లు మరియు నిర్ణయ సాధనాలు" },
+  tabAdvisor: { English: "Crop Advisor", Hindi: "फसल सलाहकार", Telugu: "పంట సలహాదారు" },
+  tabRisk: { English: "Risk Calculator", Hindi: "जोखिम कैलकुलेटर", Telugu: "రిస్క్ కాలిక్యులేటర్" },
+  tabYield: { English: "Yield Estimator", Hindi: "उपज अनुमानक", Telugu: "దిగుబడి అంచనాదారు" },
+  tabAdvisorDesc: { English: "Find the best crops for your soil and budget", Hindi: "अपनी मिट्टी और बजट के लिए सर्वोत्तम फसलें खोजें", Telugu: "మీ నేల మరియు బడ్జెట్ కోసం ఉత్తమ పంటలను కనుగొనండి" },
+  tabRiskDesc: { English: "Estimate crop failure risk factors", Hindi: "फसल विफलता जोखिम कारकों का अनुमान लगाएं", Telugu: "పంట వైఫల్య రిస్క్ కారకాలను అంచనా వేయండి" },
+  tabYieldDesc: { English: "Estimate expected harvest output", Hindi: "अपेक्षित फसल उत्पादन का अनुमान लगाएं", Telugu: "ఊహించిన పంట దిగుబడిని అంచనా వేయండి" },
+  analyzing2: { English: "Analyzing...", Hindi: "विश्लेषण हो रहा है...", Telugu: "విశ్లేషిస్తోంది..." },
+  calculateRisk: { English: "Calculate Risk", Hindi: "जोखिम की गणना करें", Telugu: "రిస్క్ లెక్కించండి" },
+  calculating: { English: "Calculating...", Hindi: "गणना हो रही है...", Telugu: "లెక్కిస్తోంది..." },
+  estimateYield: { English: "Estimate Yield", Hindi: "उपज का अनुमान लगाएं", Telugu: "దిగుబడి అంచనా వేయండి" },
+  estimating: { English: "Estimating...", Hindi: "अनुमान लग रहा है...", Telugu: "అంచనా వేస్తోంది..." },
+  annualRainfall: { English: "Annual Rainfall (mm)", Hindi: "वार्षिक वर्षा (मिमी)", Telugu: "వార్షిక వర్షపాతం (మిమీ)" },
+  hasIrrigation: { English: "Has Irrigation", Hindi: "सिंचाई उपलब्ध", Telugu: "నీటి పారుదల ఉంది" },
+  area: { English: "Area (acres)", Hindi: "क्षेत्र (एकड़)", Telugu: "విస్తీర్ణం (ఎకరాలు)" },
+  fertilizer: { English: "Fertilizer", Hindi: "उर्वरक", Telugu: "ఎరువు" },
+  expected: { English: "Expected", Hindi: "अनुमानित", Telugu: "అంచనా" },
+  conservative: { English: "Conservative", Hindi: "न्यूनतम", Telugu: "కనిష్ట" },
+  optimistic: { English: "Optimistic", Hindi: "अधिकतम", Telugu: "గరిష్ట" },
+  recommendation: { English: "Recommendation", Hindi: "सिफारिश", Telugu: "సిఫార్సు" },
+  riskScore: { English: "Risk Score", Hindi: "जोखिम स्कोर", Telugu: "రిస్క్ స్కోర్" },
+  tryAdjust: { English: "Try adjusting your inputs and running again.", Hindi: "अपने इनपुट समायोजित करके पुनः प्रयास करें।", Telugu: "మీ ఇన్‌పుట్‌లను సర్దుబాటు చేసి మళ్లీ ప్రయత్నించండి." },
+  basedOnInputs: { English: "Based on your inputs, consider crops suited for", Hindi: "आपके इनपुट के अनुसार, इन फसलों पर विचार करें:", Telugu: "మీ ఇన్‌పుట్‌ల ఆధారంగా, ఈ పంటలను పరిగణించండి:" },
+  // Profile page
+  profileTitle: { English: "Farm Profile", Hindi: "कृषि प्रोफ़ाइल", Telugu: "వ్యవసాయ ప్రొఫైల్" },
+  profileSubtitle: { English: "Manage your farm details, land, and crop preferences.", Hindi: "अपने खेत का विवरण, भूमि और फसल प्राथमिकताएं प्रबंधित करें।", Telugu: "మీ పొలం వివరాలు, భూమి మరియు పంట ప్రాధాన్యతలను నిర్వహించండి." },
+  saveProfile: { English: "Save Profile", Hindi: "प्रोफ़ाइल सहेजें", Telugu: "ప్రొఫైల్ సేవ్ చేయండి" },
+  saving: { English: "Saving...", Hindi: "सहेज रहे हैं...", Telugu: "సేవ్ చేస్తోంది..." },
+  state: { English: "State", Hindi: "राज्य", Telugu: "రాష్ట్రం" },
+  district: { English: "District", Hindi: "जिला", Telugu: "జిల్లా" },
+  profileSaved: { English: "Profile saved!", Hindi: "प्रोफ़ाइल सहेज ली गई!", Telugu: "ప్రొఫైల్ సేవ్ చేయబడింది!" },
 } as const;
 
 export type TKey = keyof typeof t;

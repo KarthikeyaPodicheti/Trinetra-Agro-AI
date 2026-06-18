@@ -12,6 +12,7 @@ from backend.core.security import (
     hash_password,
     verify_password,
 )
+from backend.auth.otp_service import normalize_phone
 from backend.models import User
 from backend.schemas.auth import TokenResponse, UserCreate, UserLogin, UserResponse
 
@@ -27,7 +28,7 @@ async def register_user(db: AsyncSession, data: UserCreate) -> UserResponse:
         email=data.email,
         hashed_password=hash_password(data.password),
         full_name=data.full_name,
-        phone=data.phone,
+        phone=normalize_phone(data.phone) if data.phone else None,
     )
     db.add(user)
     await db.flush()

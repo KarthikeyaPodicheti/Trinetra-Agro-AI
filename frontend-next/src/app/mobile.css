@@ -86,10 +86,20 @@ body {
     padding-right: 0.5rem;
   }
 
-  /* Mobile sidebar: narrower, easier to dismiss */
-  aside.liquid-glass-sidebar {
-    width: 75vw;
-    max-width: 300px;
+  /* Mobile sidebar: completely removed from flex flow when closed */
+  /* Only styles the visible overlay — no flex interference */
+
+  /* Ensure main content takes full width on mobile — no sidebar leak */
+  .app-shell > div.flex-1 {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Main area must not overflow horizontally */
+  main.glass-bg {
+    max-width: 100vw;
+    overflow-x: hidden;
   }
 
   /* Keyboard-safe spacing */

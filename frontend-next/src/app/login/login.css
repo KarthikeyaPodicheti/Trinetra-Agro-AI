@@ -8,6 +8,17 @@
   background-size: 120% 200%;
   animation: loginBgMove 30s ease-in-out infinite alternate;
 }
+@media (max-width: 640px) {
+  .login-page {
+    background-size: auto 140%;
+    background-position: center 10%;
+    animation: loginBgMoveMobile 10s ease-in-out infinite alternate;
+  }
+}
+@keyframes loginBgMoveMobile {
+  from { background-position: center 5%; }
+  to { background-position: center 40%; }
+}
 @keyframes loginBgMove {
   from { background-position: center bottom; }
   to { background-position: center top; }

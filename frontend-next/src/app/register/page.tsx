@@ -101,6 +101,17 @@ export default function RegisterPage() {
           from { background-position: center bottom; }
           to { background-position: center top; }
         }
+        @media (max-width: 640px) {
+          .reg-page {
+            background-size: auto 140%;
+            background-position: center 10%;
+            animation: regBgMoveMobile 10s ease-in-out infinite alternate;
+          }
+        }
+        @keyframes regBgMoveMobile {
+          from { background-position: center 5%; }
+          to { background-position: center 40%; }
+        }
         .glass-card {
           position: relative;
           display: flex;

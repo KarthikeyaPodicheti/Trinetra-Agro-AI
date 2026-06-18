@@ -1,193 +1,193 @@
 "use client";
 
-import { useState } from "react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from "recharts";
+import { useState, useEffect } from "react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { apiClient } from "@/lib/api";
 import { useLang } from "@/lib/language";
-import type { MarketResponse } from "@/lib/types";
-import { FormSkeleton } from "@/components/skeleton";
 
-const CROPS = ["rice", "wheat", "cotton", "tomato", "potato", "onion", "maize", "sugarcane", "soybean", "groundnut"];
+const CROPS = ["Tomato", "Onion", "Potato", "Rice", "Wheat", "Cotton", "Maize", "Sugarcane", "Soybean", "Groundnut", "Banana", "Turmeric", "Chilli", "Ginger", "Garlic"];
+const STATES = ["Andhra Pradesh", "Maharashtra", "Karnataka", "Tamil Nadu", "Telangana", "Uttar Pradesh", "Gujarat", "Madhya Pradesh", "Rajasthan", "Punjab"];
+
+interface MandiPrice { mandi: string; crop: string; price_per_quintal: number; state: string; district: string; date: string; }
 
 export default function MarketPage() {
   const { T } = useLang();
-  const [crop, setCrop] = useState("Rice");
-  const [days, setDays] = useState(14);
+  const [crop, setCrop] = useState("Tomato");
+  const [state, setState] = useState("Maharashtra");
+  const [district, setDistrict] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<MarketResponse | null>(null);
+  const [prices, setPrices] = useState<MandiPrice[]>([]);
+  const [trend, setTrend] = useState("");
+  const [recommendation, setRecommendation] = useState<any>(null);
   const [error, setError] = useState("");
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [cachedAt, setCachedAt] = useState("");
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function fetchPrices() {
     setLoading(true);
     setError("");
-    setResult(null);
     try {
-      const r = await apiClient.post<MarketResponse>("/ai/market", {
-        crop: crop.toLowerCase(),
-        days,
-      });
-      if (r.success) {
-        setResult(r);
+      const params = new URLSearchParams({ crop, limit: "30" });
+      if (state) params.set("state", state);
+      if (district) params.set("district", district);
+      const data = await apiClient.get<any>(`/mandi/prices?${params.toString()}`);
+      if (data.success) {
+        setPrices(data.prices || []);
+        setTrend(data.trend || "stable");
+        setRecommendation(data.recommendation);
+        setTotalRecords(data.total_records || 0);
+        setCachedAt(new Date().toLocaleTimeString());
       } else {
-        setError(r.error || "Analysis failed");
+        setError(data.error || "No data available for this crop and location.");
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Request failed");
+      setError(err instanceof Error ? err.message : "Mandi data unavailable right now. Try again.");
     } finally {
       setLoading(false);
     }
   }
 
   const recColors: Record<string, string> = {
-    Buy: "text-green-600 bg-green-50 border-green-200",
-    Sell: "text-red-600 bg-red-50 border-red-200",
-    Hold: "text-orange-600 bg-orange-50 border-orange-200",
-    Monitor: "text-blue-600 bg-blue-50 border-blue-200",
+    sell_now: "bg-red-50 border-red-200 text-red-700",
+    hold: "bg-green-50 border-green-200 text-green-700",
+    monitor: "bg-blue-50 border-blue-200 text-blue-700",
+    no_data: "bg-gray-50 border-gray-200 text-gray-600",
   };
 
-  if (loading && !result) {
-    return (
-      <div className="p-6 max-w-4xl">
-        <h2 className="text-2xl font-bold text-gray-800">📈 {T("marketTitle")}</h2>
-        <p className="text-gray-500 mt-1">{T("marketSubtitle")}</p>
-        <div className="mt-6"><FormSkeleton /></div>
-      </div>
-    );
-  }
+  const recLabels: Record<string, string> = { sell_now: "📉 Sell Now", hold: "📈 Hold / Wait", monitor: "📊 Monitor", no_data: "ℹ️ No Data" };
+
+  const chartData = prices.slice(0, 14).reverse().map((p, i) => ({
+    date: p.date?.slice(5) || `Day ${i + 1}`,
+    price: p.price_per_quintal,
+    mandi: p.mandi,
+  }));
 
   return (
-    <div className="p-6 max-w-4xl">
-      <h2 className="text-2xl font-bold text-gray-800">📈 {T("marketTitle")}</h2>
-      <p className="text-gray-500 mt-1">{T("marketSubtitle")}</p>
+    <div className="p-4 sm:p-6 w-full" style={{ maxWidth: "100vw" }}>
+      <h2 className="text-xl sm:text-2xl font-bold" style={{ color: "var(--color-brand-deep)" }}>📈 Mandi Prices</h2>
+      <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>Real-time crop prices from Government of India mandis</p>
 
-      <form onSubmit={handleSubmit} className="mt-6 bg-white rounded-xl border border-green-100 p-6 shadow-sm space-y-5 liquid-glass-card">
-        <div className="grid md:grid-cols-2 gap-4">
+      <form onSubmit={(e) => { e.preventDefault(); fetchPrices(); }} className="mt-6 card liquid-glass-card rounded-xl p-4 sm:p-5 space-y-4" style={{ maxWidth: 600 }}>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">{T("selectCrop")}</label>
-            <select
-              value={crop}
-              onChange={(e) => setCrop(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-            >
-              {CROPS.map((c) => <option key={c} value={c.charAt(0).toUpperCase() + c.slice(1)}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
+            <label className="label">{T("selectCrop")}</label>
+            <select value={crop} onChange={e => setCrop(e.target.value)} className="input-field liquid-glass-input" aria-label="Crop">
+              {CROPS.map(c => <option key={c}>{c}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">{T("forecastDays")}</label>
-            <input
-              type="range"
-              min={7}
-              max={30}
-              value={days}
-              onChange={(e) => setDays(Number(e.target.value))}
-              className="w-full accent-green-600"
-            />
-            <p className="text-xs text-gray-400 mt-1">{days} days</p>
+            <label className="label">{T("state") || "State"}</label>
+            <select value={state} onChange={e => setState(e.target.value)} className="input-field liquid-glass-input" aria-label="State">
+              <option value="">All States</option>
+              {STATES.map(s => <option key={s}>{s}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="label">{T("district") || "District"} <span className="text-xs font-normal" style={{ color: "var(--color-text-tertiary)" }}>(optional)</span></label>
+            <input type="text" value={district} onChange={e => setDistrict(e.target.value)} placeholder="e.g. Kurnool" className="input-field liquid-glass-input" />
           </div>
         </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="px-6 py-2.5 bg-gradient-to-r from-green-600 to-green-500 text-white font-semibold rounded-lg text-sm hover:from-green-700 hover:to-green-600 disabled:opacity-50 transition"
-        >
-          {loading ? "..." : `📊  ${T("getPrediction")}`}
+        <button type="submit" disabled={loading} className="btn-primary w-full">
+          {loading ? "Fetching real-time mandi data..." : "🔍 Get Live Prices"}
         </button>
+        {cachedAt && !loading && <p className="text-xs text-center" style={{ color: "var(--color-text-tertiary)" }}>Last updated: {cachedAt} (cached for 30 min)</p>}
       </form>
 
-      {error && (
-        <div className="mt-4 bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">{error}</div>
-      )}
+      {error && <div className="mt-4 p-4 rounded-xl text-sm" style={{ background: "#FFEBEE", color: "#C62828" }}>{error}</div>}
 
       {loading && (
         <div className="mt-6 space-y-4">
-          <div className="animate-pulse bg-white rounded-xl border border-gray-100 p-4 shadow-sm h-12" />
+          <div className="skeleton h-12 rounded-xl" />
           <div className="grid grid-cols-3 gap-4">
-            <div className="animate-pulse bg-white rounded-xl border border-gray-100 p-4 shadow-sm h-20" />
-            <div className="animate-pulse bg-white rounded-xl border border-gray-100 p-4 shadow-sm h-20" />
-            <div className="animate-pulse bg-white rounded-xl border border-gray-100 p-4 shadow-sm h-20" />
+            <div className="skeleton h-20 rounded-xl" />
+            <div className="skeleton h-20 rounded-xl" />
+            <div className="skeleton h-20 rounded-xl" />
           </div>
-          <div className="animate-pulse bg-white rounded-xl border border-gray-100 p-4 shadow-sm h-72" />
+          <div className="skeleton h-64 rounded-xl" />
         </div>
       )}
 
-      {result && (
-        <div className="mt-6 space-y-4">
+      {prices.length > 0 && (
+        <div className="mt-6 space-y-4" style={{ maxWidth: "100vw" }}>
           {/* Recommendation */}
-          <div className={`rounded-xl border p-4 text-sm font-medium ${recColors[result.recommendation.action] || recColors.Monitor}`}>
-            <strong>{result.recommendation.action}</strong> — {result.recommendation.message}
-          </div>
+          {recommendation && (
+            <div className={`rounded-xl border p-4 text-sm font-medium ${recColors[recommendation.action] || recColors.monitor}`}>
+              {recLabels[recommendation.action] || recommendation.action} — {recommendation.message}
+            </div>
+          )}
 
-          {/* Metrics */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-white rounded-xl border border-green-100 p-4 shadow-sm text-center liquid-glass-card">
-              <p className="text-xs text-gray-500">Current Price</p>
-              <p className="text-lg font-bold text-gray-800 mt-1">₹{result.current_price.toLocaleString()}/q</p>
+          {/* KPI Cards */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="card liquid-glass-card rounded-xl p-3 text-center">
+              <p className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>Current Price</p>
+              <p className="text-lg font-bold mt-1" style={{ color: "var(--color-brand-deep)" }}>
+                ₹{prices[0]?.price_per_quintal?.toLocaleString()}/q
+              </p>
             </div>
-            <div className="bg-white rounded-xl border border-green-100 p-4 shadow-sm text-center liquid-glass-card">
-              <p className="text-xs text-gray-500">Avg Expected ({days}d)</p>
-              {(() => {
-                const preds = result.predictions.prices;
-                const avg = preds.reduce((a, b) => a + b, 0) / preds.length;
-                const delta = avg - result.current_price;
-                return (
-                  <>
-                    <p className="text-lg font-bold text-gray-800 mt-1">₹{avg.toFixed(0)}</p>
-                    <p className={`text-xs ${delta >= 0 ? "text-green-500" : "text-red-500"}`}>
-                      {delta >= 0 ? "+" : ""}{delta.toFixed(0)}
-                    </p>
-                  </>
-                );
-              })()}
+            <div className="card liquid-glass-card rounded-xl p-3 text-center">
+              <p className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>7-Day Avg</p>
+              <p className="text-lg font-bold mt-1" style={{ color: "var(--color-brand-deep)" }}>
+                ₹{Math.round(prices.slice(0, 7).reduce((a, p) => a + p.price_per_quintal, 0) / Math.min(prices.length, 7)).toLocaleString()}/q
+              </p>
             </div>
-            <div className="bg-white rounded-xl border border-green-100 p-4 shadow-sm text-center liquid-glass-card">
-              <p className="text-xs text-gray-500">Overall Trend</p>
-              <p className="text-lg font-bold text-gray-800 mt-1 capitalize">{result.trend}</p>
+            <div className="card liquid-glass-card rounded-xl p-3 text-center">
+              <p className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>Trend</p>
+              <p className="text-lg font-bold mt-1 capitalize" style={{ color: trend === "rising" ? "#2E7D32" : trend === "falling" ? "#C62828" : "#1565C0" }}>
+                {trend === "rising" ? "↑" : trend === "falling" ? "↓" : "→"} {trend}
+              </p>
             </div>
           </div>
 
           {/* Chart */}
-          <div className="bg-white rounded-xl border border-green-100 p-4 shadow-sm liquid-glass-card">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">📉 Price Forecast — {crop}</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart
-                data={result.predictions.dates.map((d, i) => ({
-                  date: d,
-                  Price: result.predictions.prices[i],
-                  "7-day MA": result.predictions.moving_avg[i],
-                }))}
-              >
+          <div className="card liquid-glass-card rounded-xl p-4">
+            <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--color-brand-deep)" }}>📉 Price Trend — {crop} in {state || "All India"}</h3>
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E8F5E9" />
                 <XAxis dataKey="date" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
+                <Tooltip content={({ active, payload }) => {
+                  if (active && payload?.[0]) {
+                    return <div className="bg-white p-2 rounded-lg shadow text-sm border"><p>₹{payload[0].payload.price}/quintal</p><p className="text-xs text-gray-500">{payload[0].payload.mandi}</p></div>;
+                  }
+                  return null;
+                }} />
                 <Legend />
-                <Line type="monotone" dataKey="Price" stroke="#2E7D32" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="7-day MA" stroke="#81C784" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+                <Line type="monotone" dataKey="price" name="₹/Quintal" stroke="#2E7D32" strokeWidth={2} dot={{ r: 3 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Market Tips */}
-          {result.market_tips && result.market_tips.length > 0 && (
-            <div className="bg-white rounded-xl border border-green-100 p-4 shadow-sm liquid-glass-card">
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">💡 Market Tips</h3>
-              <ul className="space-y-1 text-sm text-gray-600 list-disc list-inside">
-                {result.market_tips.map((tip, i) => (
-                  <li key={i}>{tip}</li>
+          {/* Price Table */}
+          <div className="card liquid-glass-card rounded-xl p-4 overflow-x-auto">
+            <h3 className="text-sm font-semibold mb-3" style={{ color: "var(--color-brand-deep)" }}>📋 Recent Mandi Prices ({prices.length} records of {totalRecords})</h3>
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b" style={{ borderColor: "var(--color-border-light)" }}>
+                  <th className="text-left py-2 font-medium" style={{ color: "var(--color-text-secondary)" }}>Mandi</th>
+                  <th className="text-right py-2 font-medium" style={{ color: "var(--color-text-secondary)" }}>₹/Quintal</th>
+                  <th className="text-right py-2 font-medium" style={{ color: "var(--color-text-secondary)" }}>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {prices.slice(0, 10).map((p, i) => (
+                  <tr key={i} className="border-b" style={{ borderColor: "var(--color-border-light)" }}>
+                    <td className="py-2">{p.mandi}</td>
+                    <td className="py-2 text-right font-semibold">₹{p.price_per_quintal.toLocaleString()}</td>
+                    <td className="py-2 text-right" style={{ color: "var(--color-text-tertiary)" }}>{p.date}</td>
+                  </tr>
                 ))}
-              </ul>
-            </div>
-          )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {!loading && prices.length === 0 && !error && (
+        <div className="mt-6 p-8 text-center card liquid-glass-card rounded-xl">
+          <p className="text-3xl mb-2">📈</p>
+          <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>Select a crop and state above, then click <strong>Get Live Prices</strong> to fetch real mandi data from the Government of India.</p>
+          <p className="text-xs mt-2" style={{ color: "var(--color-text-tertiary)" }}>First query may take 15-20 seconds. Repeat queries are cached for 30 minutes.</p>
         </div>
       )}
     </div>

@@ -57,7 +57,7 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 w-full" style={{ maxWidth: "100vw" }}>
       {/* Hero — season-aware gradient with ambient depth */}
       <div className="liquidGlass-wrapper mb-5 sm:mb-6" style={{ borderRadius: "1rem", padding: 0, cursor: "default", background: `linear-gradient(135deg, ${info.color}, ${info.color}dd, #166534)` }}>
         <div className="liquidGlass-effect" style={{ background: "rgba(255,255,255,0.08)" }} />

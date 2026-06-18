@@ -129,11 +129,11 @@ class DiseaseDetector:
             "severity": "High" if confidence > 0.85 else "Medium" if confidence > 0.6 else "Low",
             "recommendation": "Consult a local plant pathologist for confirmation.",
             "prevention_tips": ["Use disease-resistant varieties", "Practice crop rotation", "Maintain field hygiene"],
-            "grad_cam_available": grad_cam is not None,
+            "grad_cam_image": grad_cam,
         }
 
     def _compute_gradcam(self, img_array, predicted_class):
-        """Grad-CAM heatmap computation (returns None if fails)."""
+        """Grad-CAM heatmap → base64 PNG. Returns None if TF not loaded."""
         try:
             import tensorflow as tf
             last_conv = None
@@ -154,9 +154,27 @@ class DiseaseDetector:
             heatmap = tf.reduce_mean(tf.multiply(pooled_grads, conv_outputs), axis=-1)[0]
             heatmap = np.maximum(heatmap, 0)
             heatmap /= np.max(heatmap) if np.max(heatmap) > 0 else 1
-            return heatmap.numpy().tolist()
+            heatmap = heatmap.numpy()
+            # Overlay heatmap on original image → base64 PNG
+            img_orig = tf.keras.preprocessing.image.array_to_img(img_array[0])
+            img_orig = img_orig.resize((224, 224))
+            overlay = self._superimpose_heatmap(np.array(img_orig), heatmap)
+            buf = io.BytesIO()
+            Image.fromarray(overlay).save(buf, format="PNG")
+            import base64
+            return f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode()}"
         except Exception:
             return None
+
+    @staticmethod
+    def _superimpose_heatmap(img_rgb: np.ndarray, heatmap: np.ndarray) -> np.ndarray:
+        """Overlay Grad-CAM heatmap on original image."""
+        import cv2
+        heatmap = cv2.resize(heatmap, (img_rgb.shape[1], img_rgb.shape[0]))
+        heatmap = np.uint8(255 * heatmap)
+        heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
+        superimposed = cv2.addWeighted(img_rgb[..., ::-1], 0.6, heatmap, 0.4, 0)
+        return superimposed[..., ::-1]
 
     def _predict_fallback(self, crop_type: str) -> Dict[str, Any]:
         """Fallback analysis using lookup table."""
@@ -177,7 +195,7 @@ class DiseaseDetector:
             "severity": severity,
             "recommendation": disease["treatment"],
             "prevention_tips": disease["prevention"],
-            "grad_cam_available": False,
+            "grad_cam_image": None,
             "note": "Running in fallback mode — train MobileNetV2 model for accurate predictions.",
         }
 
