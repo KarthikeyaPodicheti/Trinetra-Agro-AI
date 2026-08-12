@@ -780,6 +780,14 @@ The model was `openrouter/free` — OpenRouter's automatic free model router. Th
 
 **Fix**: Switched to `google/gemma-4-31b-it:free` — a specific free model that responds in 2-4 seconds. Updated `OPENROUTER_MODEL` in the VPS `.env` file and restarted the backend. The chatbot now gives real AI answers with personalized farming advice.
 
+### Bug #8 — The OTP Endpoint That Never Got Its Key
+
+Phone OTP login was rolled out, the frontend called `/auth/send-otp`, and the backend returned a clean HTTP 500 — no helpful message, just a loud error. The endpoint looked correct, the store/verify logic tested fine manually.
+
+The settings model (`Settings` in `backend/core/config.py`) never declared a `fast2sms_api_key` field. The OTP router referenced `settings.fast2sms_api_key` and the settings `__init__` tried to assign it — but the field simply didn't exist on the class. Every call to send an OTP raised `AttributeError: 'Settings' object has no attribute 'fast2sms_api_key'`.
+
+**Fix**: Declared `fast2sms_api_key: str = ""` on `Settings`. Also added two dependencies that were imported but missing from `requirements.txt` — `loguru` (used by the logging middleware) and `numpy` (imported at module load by the disease detector) — which meant a fresh `pip install -r backend/requirements.txt` couldn't even import the app. These were caught by the new 56-test pytest suite (runs against SQLite, no network, no real keys) that's now wired into CI.
+
 ---
 
 ## Troubleshooting
