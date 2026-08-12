@@ -63,6 +63,7 @@ class Settings(BaseSettings):
     weather_api_key: str = ""
     market_data_api_key: str = ""
     data_gov_api_key: str = ""
+    fast2sms_api_key: str = ""
 
     # CORS
     allowed_origins: list = ["http://localhost:8501", "http://localhost:3000"]
